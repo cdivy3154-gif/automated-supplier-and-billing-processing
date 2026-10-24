@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GSCSCL - Automated Commodity Supplier Billing & Payment Processing System | Government of Gujarat</title>
+  
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            gscscl: {
+              navy: '#0b2545',
+              blue: '#134074',
+              lightBlue: '#1d4ed8',
+              gold: '#c8963e',
+              saffron: '#f59e0b',
+              green: '#047857'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- Chart.js for Admin Analytics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col antialiased">
+
+  <!-- ========================================================= -->
+  <!-- 1. UNAUTHENTICATED SCREEN: GOVERNMENT SSO LOGIN PORTAL    -->
+  <!-- ========================================================= -->
+  <div id="auth-screen">
+    <!-- Rendered dynamically by appController.renderLoginPage() -->
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- 2. AUTHENTICATED SCREEN: PROTECTED ENTERPRISE DASHBOARD   -->
+  <!-- ========================================================= -->
+  <div id="dashboard-screen" class="hidden min-h-screen flex flex-col">
+    
+    <!-- Top Tricolor Band -->
+    <div class="govt-ribbon"></div>
+
+    <!-- Official Government Masthead -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <!-- Top Meta Row -->
+        <div class="py-2.5 flex flex-col md:flex-row md:items-center justify-between border-b border-slate-100 gap-2 text-xs">
+          <div class="flex items-center gap-3">
+            <!-- State Emblem -->
+            <div class="w-10 h-10 rounded-full bg-slate-900 text-amber-400 flex items-center justify-center font-bold text-lg shadow-inner">
+              <i class="fa-solid fa-wheat-awn"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider font-gujarati">ગુજરાત સરકાર • સરકારી સાહસ</span>
+                <span class="px-1.5 py-0.2 bg-emerald-100 text-emerald-800 text-[10px] font-bold rounded">ISO 9001:2015</span>
+                <span class="px-1.5 py-0.2 bg-blue-100 text-blue-800 text-[10px] font-bold rounded">IFMS Gujarat Integrated</span>
+              </div>
+              <h1 class="text-sm md:text-base font-extrabold text-slate-900 tracking-tight leading-tight">
+                ગુજરાત રાજ્ય નાગરિક પુરવઠા નિગમ લિમિટેડ (GSCSCL)
+              </h1>
+              <p class="text-[11px] text-slate-600 font-medium">
+                Automated Commodity Supplier Billing & Payment Processing System
+              </p>
+            </div>
+          </div>
+
+          <!-- Right Info, Notifications & User Session Profile -->
+          <div class="flex items-center gap-3 self-end md:self-center">
+            
+            <div class="hidden sm:block text-right pr-2 border-r border-slate-200">
+              <div class="text-[10px] text-slate-400">PDS Procurement Cell</div>
+              <div id="live-clock" class="font-mono font-bold text-slate-700 text-xs">IST Loading...</div>
+            </div>
+
+            <!-- Notification Bell -->
+            <div class="relative">
+              <button id="notification-bell-btn" onclick="appController.toggleNotificationDropdown()" 
+                class="relative p-2 text-slate-600 hover:text-blue-900 hover:bg-slate-100 rounded-lg transition-colors" title="Notifications">
+                <i class="fa-solid fa-bell text-base"></i>
+                <span id="notif-badge" class="hidden absolute top-1 right-1 w-4 h-4 bg-rose-600 text-white rounded-full text-[10px] font-bold flex items-center justify-center">
+                  0
+                </span>
+              </button>
+
+              <!-- Notifications Dropdown -->
+              <div id="notification-dropdown" class="hidden absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-slate-200 z-50 overflow-hidden">
+                <div class="bg-slate-900 text-white p-3 flex items-center justify-between text-xs">
+                  <span class="font-bold flex items-center gap-1.5">
+                    <i class="fa-solid fa-bell"></i> Audit & Workflow Notifications
+                  </span>
+                  <button onclick="AppState.markAllNotificationsRead()" class="text-[10px] text-blue-300 hover:underline">
+                    Mark all read
+                  </button>
+                </div>
+                <div id="notification-list-body" class="max-h-64 overflow-y-auto divide-y divide-slate-100">
+                  <!-- Dynamically populated -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Authenticated Officer Badge -->
+            <div class="bg-slate-50 border border-slate-200 rounded-lg p-1.5 flex items-center gap-2">
+              <img id="current-role-avatar" src="" alt="Avatar" class="w-8 h-8 rounded-full border border-slate-300 object-cover">
+              <div class="text-left hidden sm:block">
+                <div class="flex items-center gap-1">
+                  <span id="current-role-badge" class="px-1.5 py-0.2 bg-blue-900 text-white text-[9px] font-bold rounded uppercase">
+                    ROLE
+                  </span>
+                </div>
+                <div id="current-role-name" class="text-xs font-bold text-slate-900 leading-tight">Officer Name</div>
+              </div>
+            </div>
+
+            <!-- Prominent Logout Button -->
+            <button onclick="appController.handleLogout()" 
+              class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-800 border border-rose-200 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors shadow-2xs"
+              title="Sign Out of Session">
+              <i class="fa-solid fa-arrow-right-from-bracket"></i>
+              <span class="hidden sm:inline">Logout / સાઇન આઉટ</span>
+            </button>
+
+          </div>
+
+        </div>
+
+        <!-- Role-Based Interactive Dynamic Navigation Bar -->
+        <div class="py-2 flex items-center justify-between overflow-x-auto gap-2">
+          <div id="role-nav-tabs" class="flex items-center gap-1 flex-nowrap">
+            <!-- Dynamically populated tabs -->
+          </div>
+
+          <!-- Global Quick Exception Hub Pill -->
+          <button id="global-exception-hub-btn" onclick="AppState.setActiveTab('exceptions')" 
+            class="shrink-0 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors shadow-2xs">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <span>Exception Hub</span>
+            <span id="global-exceptions-count" class="px-1.5 py-0.2 bg-rose-600 text-white rounded-full text-[10px]">
+              2
+            </span>
+          </button>
+        </div>
+
+      </div>
+    </header>
+
+    <!-- Role Persona Info Strip -->
+    <div class="bg-white border-b border-slate-200/80 px-4 py-2">
+      <div class="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-user-shield text-blue-800"></i>
+          <span class="text-slate-500">Authenticated Session:</span>
+          <span id="current-role-desig" class="text-slate-800 font-semibold truncate max-w-lg">Officer • Department</span>
+        </div>
+        <div class="flex items-center gap-3 text-[11px] text-slate-500">
+          <span class="flex items-center gap-1">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span> IFMS Core Gateway Online
+          </span>
+          <span class="text-slate-300">•</span>
+          <span>Procurement Season: <strong>Kharif / Rabi 2026-27</strong></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Workspace Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div id="main-content-view">
+        <!-- Dynamic views load here -->
+      </div>
+    </main>
+
+    <!-- Government Footer -->
+    <footer class="bg-slate-900 text-slate-400 text-xs border-t-2 border-amber-500 mt-auto">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-full bg-slate-800 text-amber-400 flex items-center justify-center font-bold">
+              <i class="fa-solid fa-landmark"></i>
+            </div>
+            <div>
+              <p class="font-bold text-white text-xs">Gujarat State Civil Supplies Corporation Limited</p>
+              <p class="text-[11px] text-slate-400">Food, Civil Supplies & Consumer Affairs Department, Government of Gujarat</p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-6 text-[11px]">
+            <span class="flex items-center gap-1.5"><i class="fa-solid fa-lock text-emerald-400"></i> 256-Bit SSL Secured</span>
+            <span class="flex items-center gap-1.5"><i class="fa-solid fa-headset text-blue-400"></i> Toll-Free PDS Helpline: 1800-233-5500</span>
+            <button onclick="appController.resetToInitialDemoData()" class="hover:text-amber-400 underline transition-colors">
+              Reset Demo Data
+            </button>
+          </div>
+        </div>
+        <div class="mt-4 pt-4 border-t border-slate-800 text-[10px] text-center text-slate-400 flex flex-col sm:flex-row items-center justify-between gap-2">
+          <span>Designed & Developed for GSCSCL Public Distribution & MSP Commodity Billing.</span>
+          <span>Compatible with IFMS-Gujarat & Public Financial Management System (PFMS).</span>
+        </div>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- Reusable Modals Mount Point -->
+  <div id="app-modal-container" class="hidden"></div>
+
+  <!-- Scripts -->
+  <script src="js/data.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/components.js"></script>
+  <script src="js/app.js"></script>
+
+  <script>
+    // Live Clock Initializer
+    function updateClock() {
+      const el = document.getElementById('live-clock');
+      if (el) {
+        const now = new Date();
+        el.innerText = now.toLocaleString('en-IN', {
+          timeZone: 'Asia/Kolkata',
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        }) + ' IST';
+      }
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // Start App Controller on Page Load
+    document.addEventListener('DOMContentLoaded', () => {
+      appController.init();
+    });
+  </script>
+</body>
+</html>

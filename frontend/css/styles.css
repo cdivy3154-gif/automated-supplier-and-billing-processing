@@ -1,0 +1,144 @@
+/* GSCSCL Official Portal Custom Styles */
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+Gujarati:wght@400;500;600;700&display=swap');
+
+:root {
+  --gscscl-navy: #0b2545;
+  --gscscl-blue: #134074;
+  --gscscl-blue-light: #1d4ed8;
+  --gscscl-gold: #c8963e;
+  --gscscl-gold-light: #fef3c7;
+  --gscscl-saffron: #f59e0b;
+  --gscscl-green: #047857;
+  --gscscl-bg: #f8fafc;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: #f1f5f9;
+  color: #1e293b;
+  overflow-x: hidden;
+}
+
+.font-gujarati {
+  font-family: 'Noto Sans Gujarati', sans-serif;
+}
+
+.font-official {
+  font-family: 'Cinzel', serif;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Government Tricolor Top Ribbon */
+.govt-ribbon {
+  height: 4px;
+  background: linear-gradient(90deg, #ff9933 0%, #ff9933 33.33%, #ffffff 33.33%, #ffffff 66.66%, #138808 66.66%, #138808 100%);
+}
+
+/* Glass & Card Effects */
+.portal-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease-in-out;
+}
+.portal-card:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Captcha Canvas & Badge */
+.captcha-box {
+  background: repeating-linear-gradient(
+    45deg,
+    #f8fafc,
+    #f8fafc 10px,
+    #e2e8f0 10px,
+    #e2e8f0 20px
+  );
+  font-family: 'Courier New', Courier, monospace;
+  letter-spacing: 0.35em;
+  font-weight: 800;
+  user-select: none;
+}
+
+/* Official Government Noting Sheet Style */
+.noting-sheet {
+  background-color: #fdfbf7;
+  border: 1px solid #e5dfd2;
+  border-left: 5px solid #047857;
+  position: relative;
+}
+.noting-sheet::before {
+  content: "GOVT. OF GUJARAT - OFFICIAL NOTING SHEET";
+  position: absolute;
+  top: 6px;
+  right: 12px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #94a3b8;
+  text-transform: uppercase;
+}
+
+/* Digital Watermark */
+.watermark-passed {
+  position: relative;
+  overflow: hidden;
+}
+.watermark-passed::after {
+  content: "PAID / DISBURSED";
+  position: absolute;
+  top: 40%;
+  left: 20%;
+  transform: rotate(-25deg);
+  font-size: 3.5rem;
+  font-weight: 900;
+  color: rgba(4, 120, 87, 0.09);
+  pointer-events: none;
+  border: 4px dashed rgba(4, 120, 87, 0.15);
+  padding: 0.5rem 2rem;
+  border-radius: 12px;
+}
+
+/* Pulse badge */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.15); }
+}
+.pulse-indicator {
+  animation: pulse-dot 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Print Styles for Voucher and Sanction Order */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #printable-voucher, #printable-voucher * {
+    visibility: visible;
+  }
+  #printable-voucher {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 20px;
+    background: white;
+  }
+}
