@@ -43,12 +43,16 @@ class Settings(BaseSettings):
         description="Supabase JWKS URL for cryptographic ES256/RS256 asymmetric token verification",
     )
 
-    # CORS Settings
+    # CORS Settings - Explicit permitted origins for local development
     ALLOWED_ORIGINS: Union[List[str], str] = [
         "http://localhost:3000",
         "http://localhost:5173",
+        "http://localhost:5500",
+        "http://localhost:8080",
         "http://127.0.0.1:3000",
         "http://127.0.0.1:5173",
+        "http://127.0.0.1:5500",
+        "http://127.0.0.1:8080",
     ]
 
     @field_validator("ALLOWED_ORIGINS", mode="before")
@@ -77,6 +81,17 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.ENVIRONMENT.lower() in ("production", "prod")
+
+    def validate_production_readiness(self) -> None:
+        """Validate that required production secrets and URLs are present and not placeholders."""
+        if not self.is_production:
+            return
+        if not self.SUPABASE_URL or "placeholder" in self.SUPABASE_URL.lower():
+            raise ValueError("SUPABASE_URL must be configured with a valid Supabase project URL in production")
+        if not self.SUPABASE_ANON_KEY or "placeholder" in self.SUPABASE_ANON_KEY.lower():
+            raise ValueError("SUPABASE_ANON_KEY must be configured with a valid anonymous key in production")
+        if not self.SUPABASE_SERVICE_ROLE_KEY or "placeholder" in self.SUPABASE_SERVICE_ROLE_KEY.lower():
+            raise ValueError("SUPABASE_SERVICE_ROLE_KEY is required for server operations in production")
 
 
 settings = Settings()

@@ -362,9 +362,12 @@ def test_check6_modified_signature_rejected_by_api(client, admin_user_data):
     }
     valid_token = jwt.encode(payload, priv_key, algorithm="ES256", headers={"kid": "valid-kid"})
 
-    # Tamper with the signature bytes (last segment of JWT)
+    # Safely tamper with signature bytes without invalidating base64 framing
+    import base64
     parts = valid_token.split(".")
-    tampered_sig = parts[2][:-1] + ("A" if parts[2][-1] != "A" else "B")
+    sig_bytes = base64.urlsafe_b64decode(parts[2] + "==")
+    tampered_bytes = bytes([sig_bytes[0] ^ 0xFF]) + sig_bytes[1:]
+    tampered_sig = base64.urlsafe_b64encode(tampered_bytes).decode().rstrip("=")
     tampered_token = f"{parts[0]}.{parts[1]}.{tampered_sig}"
 
     mock_signing_key = MagicMock()

@@ -66,3 +66,37 @@ def test_decode_access_token_empty_token():
         decode_access_token("")
     with pytest.raises(InvalidTokenError):
         decode_access_token(None)  # type: ignore
+
+
+def test_validate_production_readiness_fails_on_placeholder():
+    """Verify that placeholder config raises ValueError in production."""
+    prod_placeholder = Settings(
+        SUPABASE_URL="https://placeholder.supabase.co",
+        SUPABASE_ANON_KEY="placeholder-anon-key",
+        ENVIRONMENT="production",
+    )
+    with pytest.raises(ValueError, match="SUPABASE_URL must be configured"):
+        prod_placeholder.validate_production_readiness()
+
+
+def test_validate_production_readiness_succeeds_on_valid_config():
+    """Verify that valid config passes validation in production."""
+    prod_valid = Settings(
+        SUPABASE_URL="https://real-project.supabase.co",
+        SUPABASE_ANON_KEY="real-anon-key-12345",
+        SUPABASE_SERVICE_ROLE_KEY="real-service-key-12345",
+        ENVIRONMENT="production",
+    )
+    # Should not raise
+    prod_valid.validate_production_readiness()
+
+
+def test_validate_production_readiness_skipped_in_dev():
+    """Verify that development mode allows placeholder configs without raising."""
+    dev_settings = Settings(
+        SUPABASE_URL="https://placeholder.supabase.co",
+        SUPABASE_ANON_KEY="placeholder-anon-key",
+        ENVIRONMENT="development",
+    )
+    dev_settings.validate_production_readiness()
+
