@@ -4,7 +4,7 @@
 
 class AppStateManager {
   constructor() {
-    this.storageKey = "GSCSCL_APP_STATE_V3";
+    this.storageKey = "GSCSCL_APP_STATE_V4";
     this.listeners = [];
     this.loadState();
   }
@@ -14,13 +14,46 @@ class AppStateManager {
       const saved = localStorage.getItem(this.storageKey);
       if (saved) {
         const parsed = JSON.parse(saved);
+        let bills = parsed.bills || [];
+        // Ensure all seed bills exist in bills array
+        if (typeof GSCSCL_DATA !== 'undefined' && GSCSCL_DATA.initialBills) {
+          GSCSCL_DATA.initialBills.forEach(seed => {
+            if (!bills.some(b => b.id === seed.id)) {
+              bills.push(JSON.parse(JSON.stringify(seed)));
+            }
+          });
+        }
+        let supplyOrders = parsed.supplyOrders || [];
+        if (typeof GSCSCL_DATA !== 'undefined' && GSCSCL_DATA.supplyOrders) {
+          GSCSCL_DATA.supplyOrders.forEach(seed => {
+            if (!supplyOrders.some(o => o.orderNumber === seed.orderNumber)) {
+              supplyOrders.push(JSON.parse(JSON.stringify(seed)));
+            }
+          });
+        }
+
+        let deliveries = parsed.deliveries || [];
+        if (typeof GSCSCL_DATA !== 'undefined' && GSCSCL_DATA.deliveries) {
+          GSCSCL_DATA.deliveries.forEach(seed => {
+            if (!deliveries.some(d => d.deliveryId === seed.deliveryId)) {
+              deliveries.push(JSON.parse(JSON.stringify(seed)));
+            }
+          });
+        }
+
         this.state = {
           isAuthenticated: Boolean(parsed.isAuthenticated),
           currentRole: parsed.currentRole || null,
-          bills: parsed.bills || GSCSCL_DATA.initialBills,
+          bills: bills.length ? bills : JSON.parse(JSON.stringify(GSCSCL_DATA.initialBills)),
           availableGRNs: parsed.availableGRNs || GSCSCL_DATA.availableGRNs,
+          supplyOrders: supplyOrders.length ? supplyOrders : JSON.parse(JSON.stringify(GSCSCL_DATA.supplyOrders || [])),
+          deliveries: deliveries.length ? deliveries : JSON.parse(JSON.stringify(GSCSCL_DATA.deliveries || [])),
           activeTab: parsed.activeTab || "dashboard",
-          notifications: parsed.notifications || this.getDefaultNotifications()
+          notifications: parsed.notifications || this.getDefaultNotifications(),
+          language: localStorage.getItem("GSCSCL_LANG") || parsed.language || "en",
+          selectedDistrict: parsed.selectedDistrict || "All Districts",
+          selectedBranch: parsed.selectedBranch || "All Branches",
+          preAuditDashboardTab: parsed.preAuditDashboardTab || "pending"
         };
       } else {
         this.resetToDefaults(false);
@@ -38,8 +71,14 @@ class AppStateManager {
         currentRole: this.state.currentRole,
         bills: this.state.bills,
         availableGRNs: this.state.availableGRNs,
+        supplyOrders: this.state.supplyOrders,
+        deliveries: this.state.deliveries,
         activeTab: this.state.activeTab,
-        notifications: this.state.notifications
+        notifications: this.state.notifications,
+        language: this.state.language,
+        selectedDistrict: this.state.selectedDistrict,
+        selectedBranch: this.state.selectedBranch,
+        preAuditDashboardTab: this.state.preAuditDashboardTab
       }));
     } catch (e) {
       console.error("Failed to save state to localStorage", e);
@@ -53,8 +92,14 @@ class AppStateManager {
       currentRole: startAuthenticated ? "supplier" : null,
       bills: JSON.parse(JSON.stringify(GSCSCL_DATA.initialBills)),
       availableGRNs: JSON.parse(JSON.stringify(GSCSCL_DATA.availableGRNs)),
+      supplyOrders: JSON.parse(JSON.stringify(GSCSCL_DATA.supplyOrders || [])),
+      deliveries: JSON.parse(JSON.stringify(GSCSCL_DATA.deliveries || [])),
       activeTab: "dashboard",
-      notifications: this.getDefaultNotifications()
+      notifications: this.getDefaultNotifications(),
+      language: localStorage.getItem("GSCSCL_LANG") || "en",
+      selectedDistrict: "All Districts",
+      selectedBranch: "All Branches",
+      preAuditDashboardTab: "pending"
     };
     this.saveState();
   }
@@ -183,6 +228,44 @@ class AppStateManager {
     this.notify();
   }
 
+  // Language State Management (English <-> Gujarati)
+  getLanguage() {
+    return this.state.language || localStorage.getItem("GSCSCL_LANG") || "en";
+  }
+
+  setLanguage(lang) {
+    this.state.language = (lang === 'gu') ? 'gu' : 'en';
+    try {
+      localStorage.setItem("GSCSCL_LANG", this.state.language);
+    } catch (e) {}
+    this.saveState();
+  }
+
+  // Location / Branch Scope for Pre-Audit Staff
+  getSelectedDistrict() {
+    return this.state.selectedDistrict || "All Districts";
+  }
+
+  getSelectedBranch() {
+    return this.state.selectedBranch || "All Branches";
+  }
+
+  setPreAuditLocation(district, branch) {
+    this.state.selectedDistrict = district || "All Districts";
+    this.state.selectedBranch = branch || "All Branches";
+    this.saveState();
+  }
+
+  // Pre-Audit Dashboard View Mode ("pending" or "cleared")
+  getPreAuditDashboardTab() {
+    return this.state.preAuditDashboardTab || "pending";
+  }
+
+  setPreAuditDashboardTab(tab) {
+    this.state.preAuditDashboardTab = tab || "pending";
+    this.saveState();
+  }
+
   // Bills Access Control:
   // If the logged in user is a supplier, they MUST only see their own bills!
   getBills() {
@@ -254,6 +337,276 @@ class AppStateManager {
       month: "short",
       year: "numeric"
     });
+  }
+
+
+
+  // =============================================================
+  // GODOWN MANAGER PERMISSIONS & OPERATIONS
+  // =============================================================
+
+  getGodownId() {
+    const role = this.getCurrentRole();
+    if (role && role.id === 'godown_manager') {
+      return role.godownId || "GDN-AHM-01";
+    }
+    return null;
+  }
+
+  // Get supply orders assigned to the logged-in Godown Manager's godown (with strict isolation)
+  getGodownSupplyOrders() {
+    const role = this.getCurrentRole();
+    if (role && role.id === 'godown_manager') {
+      const gId = role.godownId || "GDN-AHM-01";
+      return (this.state.supplyOrders || []).filter(o => o.godownId === gId);
+    }
+    return this.state.supplyOrders || [];
+  }
+
+  // Get physical deliveries assigned to the logged-in Godown Manager's godown (with strict isolation)
+  getGodownDeliveries() {
+    const role = this.getCurrentRole();
+    if (role && role.id === 'godown_manager') {
+      const gId = role.godownId || "GDN-AHM-01";
+      return (this.state.deliveries || []).filter(d => d.godownId === gId);
+    }
+    return this.state.deliveries || [];
+  }
+
+  // Get digital delivery receipts (ePOD / GRN) issued for this godown
+  getGodownReceipts() {
+    const role = this.getCurrentRole();
+    if (role && role.id === 'godown_manager') {
+      const gId = role.godownId || "GDN-AHM-01";
+      return (this.state.availableGRNs || []).filter(g => g.godownId === gId);
+    }
+    return this.state.availableGRNs || [];
+  }
+
+  // Get delivery by ID with strict godown isolation check
+  getDeliveryById(deliveryId) {
+    const delivery = (this.state.deliveries || []).find(d => d.deliveryId === deliveryId);
+    if (!delivery) return null;
+    const role = this.getCurrentRole();
+    if (role && role.id === 'godown_manager') {
+      const gId = role.godownId || "GDN-AHM-01";
+      if (delivery.godownId !== gId) {
+        console.warn("Unauthorized access: Godown Manager attempted to view another godown delivery.");
+        return null;
+      }
+    }
+    return delivery;
+  }
+
+  // Record / verify physical goods arriving at the godown
+  saveInwardDelivery(deliveryId, data) {
+    const role = this.getCurrentRole();
+    if (role && role.id !== 'godown_manager' && role.id !== 'admin') {
+      return { success: false, message: "Permission Denied: Only Godown Managers can record inward deliveries." };
+    }
+    const delivery = this.getDeliveryById(deliveryId);
+    if (!delivery) {
+      return { success: false, message: "Delivery record not found or you do not have permission." };
+    }
+
+    if (delivery.deliveryStatus === "Receipt Issued") {
+      return { success: false, message: "A digital receipt has already been issued for this delivery. Finalized records cannot be modified." };
+    }
+
+    const actualQty = parseFloat(data.actualQtyReceived);
+    const grossKg = parseFloat(data.grossWeightKg);
+    const tareKg = parseFloat(data.tareWeightKg);
+    const moisture = parseFloat(data.moisturePercent);
+    const bagsCount = parseInt(data.bagsCount, 10);
+
+    // Validation rules
+    if (isNaN(actualQty) || actualQty <= 0) {
+      return { success: false, message: "Please enter the actual quantity received." };
+    }
+    if (isNaN(grossKg) || grossKg <= 0 || isNaN(tareKg) || tareKg <= 0) {
+      return { success: false, message: "Please enter valid gross and tare weights from the weighbridge slip." };
+    }
+    if (grossKg <= tareKg) {
+      return { success: false, message: "Gross weight must be greater than tare weight." };
+    }
+    if (isNaN(moisture) || moisture < 0 || moisture > 50) {
+      return { success: false, message: "Please enter a valid moisture content percentage." };
+    }
+    if (isNaN(bagsCount) || bagsCount <= 0) {
+      return { success: false, message: "Please enter the number of bags received." };
+    }
+
+    // Check quantity against allowed order limit (max 5% variance allowed)
+    const allowedLimit = delivery.expectedQty * 1.05;
+    if (actualQty > allowedLimit) {
+      return { 
+        success: false, 
+        message: "The received quantity (" + actualQty + " Qtl) is above the allowed order limit (" + delivery.expectedQty + " Qtl + 5% tolerance). Please check the delivery details or report a delivery issue." 
+      };
+    }
+
+    const netKg = grossKg - tareKg;
+    const now = new Date();
+    const dateStr = now.toISOString().split('T')[0];
+    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const currentRole = this.getCurrentRole() || { officer: "Godown Manager" };
+
+    // Update delivery record
+    delivery.actualQtyReceived = actualQty;
+    delivery.grossWeightKg = grossKg;
+    delivery.tareWeightKg = tareKg;
+    delivery.netWeightKg = netKg;
+    delivery.weighbridgeSlipNo = data.weighbridgeSlipNo || delivery.weighbridgeSlipNo || ("WB-" + Math.floor(10000 + Math.random() * 90000));
+    delivery.bagsCount = bagsCount;
+    delivery.moisturePercent = moisture;
+    delivery.stackingBay = data.stackingBay || delivery.stackingBay || "Bay 1";
+    delivery.qualityPassed = Boolean(data.qualityPassed);
+    delivery.qualityRemarks = data.qualityRemarks || "Physical stock inspected and compliant with standards.";
+    delivery.deliveryStatus = "Delivery Confirmed";
+    delivery.verifiedBy = currentRole.officer + " (" + (currentRole.designation || 'Godown Manager') + ")";
+    delivery.verifiedDate = dateStr + " " + timeStr;
+    delivery.remarks = data.remarks || "Goods physically checked and confirmed at godown.";
+
+    if (delivery.maxAllowedMoisture && moisture > delivery.maxAllowedMoisture) {
+      delivery.moistureWarning = "Moisture content (" + moisture + "%) exceeds standard limit (" + delivery.maxAllowedMoisture + "%).";
+    }
+
+    this.addNotification({
+      title: "Delivery Details Saved",
+      message: "Delivery " + deliveryId + " (" + delivery.commodity + ") physically confirmed at " + delivery.godownName + ".",
+      type: "success"
+    });
+
+    this.saveState();
+    return { success: true, message: "Delivery details saved. You can now issue a digital delivery receipt." };
+  }
+
+  // Issue digital Proof of Delivery receipt (ePOD / GRN)
+  issueDeliveryReceipt(deliveryId) {
+    const role = this.getCurrentRole();
+    if (role && role.id !== 'godown_manager' && role.id !== 'admin') {
+      return { success: false, message: "Permission Denied: Only Godown Managers can issue digital delivery receipts (ePOD)." };
+    }
+    const delivery = this.getDeliveryById(deliveryId);
+    if (!delivery) {
+      return { success: false, message: "Delivery record not found." };
+    }
+
+    if (delivery.receiptIssued || delivery.receiptId) {
+      return { success: false, message: "A receipt has already been issued for this delivery. Duplicate receipt issuance is prevented." };
+    }
+
+    if (delivery.deliveryStatus !== "Delivery Confirmed") {
+      return { success: false, message: "This delivery cannot be confirmed yet. Please check and verify the delivery details first." };
+    }
+
+    if (!delivery.qualityPassed) {
+      return { success: false, message: "Cannot issue receipt: Physical quality check was not certified." };
+    }
+
+    // Generate unique official Receipt ID (ePOD / GRN)
+    const grnCount = (this.state.availableGRNs || []).length + 9096;
+    const receiptId = "GRN-GJ-2026-" + grnCount;
+    const now = new Date();
+    const dateStr = now.toISOString().split('T')[0];
+    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    delivery.receiptId = receiptId;
+    delivery.receiptIssued = true;
+    delivery.receiptIssuedDate = dateStr + " " + timeStr;
+    delivery.deliveryStatus = "Receipt Issued";
+
+    // Add to availableGRNs so supplier can bill against this confirmed delivery
+    const newGRN = {
+      grnNumber: receiptId,
+      deliveryId: delivery.deliveryId,
+      supplierId: delivery.supplierId,
+      supplierName: delivery.supplierName,
+      godownId: delivery.godownId,
+      godownName: delivery.godownName,
+      district: delivery.district,
+      category: delivery.category,
+      commodity: delivery.commodity,
+      poNumber: delivery.orderNumber,
+      inwardDate: dateStr,
+      truckNumber: delivery.truckNumber,
+      weighbridgeSlipNo: delivery.weighbridgeSlipNo,
+      grossWeightKg: delivery.grossWeightKg,
+      tareWeightKg: delivery.tareWeightKg,
+      netWeightKg: delivery.netWeightKg,
+      quantityQuintals: delivery.actualQtyReceived,
+      bagsCount: delivery.bagsCount,
+      moisturePercent: delivery.moisturePercent,
+      qualityStatus: "Passed - " + delivery.qualityRemarks,
+      alreadyBilled: false
+    };
+
+    if (!this.state.availableGRNs) this.state.availableGRNs = [];
+    this.state.availableGRNs.push(newGRN);
+
+    // Update supply order delivered quantity
+    const order = (this.state.supplyOrders || []).find(o => o.orderNumber === delivery.orderNumber);
+    if (order) {
+      order.deliveredQty = (order.deliveredQty || 0) + delivery.actualQtyReceived;
+      order.remainingQty = Math.max(0, order.expectedQty - order.deliveredQty);
+      if (order.remainingQty === 0) {
+        order.orderStatus = "Completed";
+      } else {
+        order.orderStatus = "In Delivery";
+      }
+    }
+
+    this.addNotification({
+      title: "Receipt Issued",
+      message: "Digital delivery receipt " + receiptId + " issued for " + delivery.commodity + " (" + delivery.actualQtyReceived + " Qtl). Available for supplier billing.",
+      type: "success"
+    });
+
+    this.saveState();
+    return { success: true, receiptId: receiptId, message: "Receipt issued successfully. Receipt ID: " + receiptId + "." };
+  }
+
+  // Report delivery issue / Clarify Stock
+  reportDeliveryClarification(deliveryId, data) {
+    const delivery = this.getDeliveryById(deliveryId);
+    if (!delivery) {
+      return { success: false, message: "Delivery record not found." };
+    }
+
+    if (delivery.deliveryStatus === "Receipt Issued") {
+      return { success: false, message: "Cannot report issues on finalized deliveries with issued receipts." };
+    }
+
+    if (!data.problemType) {
+      return { success: false, message: "Please select the type of delivery problem." };
+    }
+    if (!data.details || data.details.trim().length < 5) {
+      return { success: false, message: "Please enter remarks explaining the delivery problem." };
+    }
+
+    const now = new Date();
+    const dateStr = now.toISOString().split('T')[0];
+    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const currentRole = this.getCurrentRole() || { officer: "Godown Manager" };
+
+    delivery.deliveryStatus = "Needs Correction";
+    delivery.clarification = {
+      problemType: data.problemType,
+      details: data.details.trim(),
+      proposedAction: data.proposedAction || "Consignment held at godown gate for joint re-inspection.",
+      reportedDate: dateStr + " " + timeStr,
+      reportedBy: currentRole.officer + " (" + (currentRole.designation || 'Godown Manager') + ")"
+    };
+    delivery.remarks = "Delivery issue reported: " + data.problemType + ". " + data.details.trim();
+
+    this.addNotification({
+      title: "Delivery Issue Reported",
+      message: "Issue reported on " + deliveryId + ": " + data.problemType + ". Consignment marked for clarification.",
+      type: "warning"
+    });
+
+    this.saveState();
+    return { success: true, message: "Delivery issue reported successfully. The consignment status is updated to Needs Correction." };
   }
 
   // =============================================================
@@ -630,71 +983,86 @@ class AppStateManager {
     return queryObj;
   }
 
-  // =============================================================
+// =============================================================
   // OFFICIAL ACTIONS (FOR GOVERNMENT OFFICIALS ONLY)
-  // Backend Security Enforced: Suppliers cannot call these!
+  // Backend RBAC & Workflow Sequence Enforced
+  // Sequence: Godown -> Branch/Pre-Audit -> GM Sanction -> Finance
   // =============================================================
 
   passGodownVerification(billId, remarks = "") {
-    // SECURITY GUARD
-    if (this.getCurrentRole()?.id === 'supplier') {
-      this.addNotification({
-        title: "Permission Denied",
-        message: "Suppliers are not authorized to verify or approve stock.",
-        type: "warning"
-      });
-      return false;
+    const role = this.getCurrentRole();
+    if (!role || role.id === 'godown_manager' || role.id === 'supplier') {
+      const msg = "Permission Denied: Godown Managers only record physical delivery inward and issue receipts; they cannot forward or approve supplier bills to Pre-Audit.";
+      this.addNotification({ title: "Permission Denied", message: msg, type: "warning" });
+      return { success: false, message: msg };
     }
 
     const bill = this.getBillById(billId);
-    if (!bill) return false;
+    if (!bill) return { success: false, message: "Bill not found" };
 
-    const currentRole = this.getCurrentRole() || { officer: "Godown Manager", designation: "In-Charge" };
+    if (bill.status !== "Submitted" && bill.status !== "Under Verification") {
+      const msg = `Action Blocked: Cannot perform Godown Inward Verification on a bill in '${bill.status}' status.`;
+      this.addNotification({ title: "Invalid State", message: msg, type: "warning" });
+      return { success: false, message: msg };
+    }
+
     const now = new Date();
     const dateStr = now.toISOString().split('T')[0];
     const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
     bill.status = "Pre-Audit";
     bill.statusColor = "emerald";
-    bill.currentStage = "Waiting for Approval";
+    bill.currentStage = "Branch / Pre-Audit Verification";
     bill.publicRemark = "Physical stock and weighment slip verified. Forwarded to Pre-Audit branch.";
     bill.auditChecklist.weighmentSlipVerified = true;
-    bill.auditChecklist.qualityReportCompliant = true;
+    if (!bill.exception?.active) {
+      bill.auditChecklist.qualityReportCompliant = true;
+    }
     bill.daysInStage = 0;
 
     bill.notingSheet.push({
       timestamp: `${dateStr} ${timeStr}`,
-      officer: currentRole.officer,
-      designation: currentRole.designation,
-      action: "Godown Verification Certified",
-      remarks: remarks || "Physical weighbridge reconciliation confirmed. Consignment moisture & refraction tests compliant with GSCSCL standards. Cleared for Pre-Audit."
+      officer: role.officer,
+      designation: role.designation,
+      action: "Godown Inward Certified (ePOD Generated)",
+      remarks: remarks || "Physical weighbridge gross & tare reconciliation confirmed. Stock inward recorded and ePOD endorsed. Cleared for Branch/Pre-Audit scrutiny."
     });
 
     this.addNotification({
-      title: "Godown Verification Completed",
-      message: `Bill ${billId} verified by Godown In-Charge and forwarded to Pre-Audit branch.`,
+      title: "Godown Inward Verified",
+      message: `Bill ${billId} verified by Godown In-Charge (${role.officer}) and forwarded to Pre-Audit branch.`,
       type: "info"
     });
 
     this.saveState();
-    return true;
+    return { success: true, message: "Godown inward certified and forwarded to Pre-Audit." };
   }
 
   passPreAudit(billId, checklistData = {}, customDeductions = null, remarks = "") {
-    // SECURITY GUARD
-    if (this.getCurrentRole()?.id === 'supplier') {
-      this.addNotification({
-        title: "Permission Denied",
-        message: "Suppliers cannot pass pre-audit or change statutory deductions.",
-        type: "warning"
-      });
-      return false;
+    const role = this.getCurrentRole();
+    if (!role || (role.id !== "pre_audit" && role.id !== "admin")) {
+      const msg = "Permission Denied: Only Branch / Pre-Audit staff (or Admin) are authorized to perform statutory pre-audit scrutiny.";
+      this.addNotification({ title: "Permission Denied", message: msg, type: "warning" });
+      return { success: false, message: msg };
     }
 
     const bill = this.getBillById(billId);
-    if (!bill) return false;
+    if (!bill) return { success: false, message: "Bill not found" };
 
-    const currentRole = this.getCurrentRole() || { officer: "Pre-Audit Officer", designation: "Audit Cell" };
+    // Prerequisite Gate 1: Godown Inward & Weighment Verification
+    if (!bill.auditChecklist.weighmentSlipVerified) {
+      const msg = "Prerequisite Failed: Godown inward verification & weighbridge receipt must be completed before Pre-Audit.";
+      this.addNotification({ title: "Prerequisite Pending", message: msg, type: "warning" });
+      return { success: false, message: msg };
+    }
+
+    // Active exception block
+    if (bill.exception && bill.exception.active) {
+      const msg = "Action Blocked: Bill has an unresolved exception. The exception must be verified and authorized before clearing Pre-Audit.";
+      this.addNotification({ title: "Exception Active", message: msg, type: "warning" });
+      return { success: false, message: msg };
+    }
+
     const now = new Date();
     const dateStr = now.toISOString().split('T')[0];
     const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -716,7 +1084,7 @@ class AppStateManager {
                               (bill.deductions.moistureDeduction || 0) + 
                               (bill.deductions.refractionCut || 0) + 
                               (bill.deductions.otherRecovery || 0);
-      bill.netPayable = bill.grossAmount - totalDeductions;
+      bill.netPayable = Math.max(0, bill.grossAmount - totalDeductions);
     }
 
     bill.status = "Approval Pending";
@@ -727,54 +1095,92 @@ class AppStateManager {
 
     bill.notingSheet.push({
       timestamp: `${dateStr} ${timeStr}`,
-      officer: currentRole.officer,
-      designation: currentRole.designation,
-      action: "Pre-Audit Passed & Forwarded",
-      remarks: remarks || `3-Way reconciliation completed. Statutory deductions (IT Sec 194Q & GST TDS 2%) verified. Net payable verified as ₹${bill.netPayable.toLocaleString('en-IN')}/-. Put up to General Manager for sanction.`
+      officer: role.officer,
+      designation: role.designation,
+      action: "Pre-Audit Passed & Forwarded to GM",
+      remarks: remarks || `3-Way reconciliation completed. Statutory deductions (IT Sec 194Q & GST TDS 2%) verified. Net payable verified as ₹${bill.netPayable.toLocaleString('en-IN')}/-. Put up to General Manager for executive sanction.`
     });
 
     this.addNotification({
       title: "Pre-Audit Cleared",
-      message: `Bill ${billId} pre-audited and forwarded to General Manager for sanction.`,
+      message: `Bill ${billId} pre-audited by ${role.officer} and put up to General Manager.`,
       type: "info"
     });
 
     this.saveState();
-    return true;
+    return { success: true, message: "Pre-audit cleared and forwarded to GM." };
   }
 
   approveGMBill(billId, remarks = "") {
-    // SECURITY GUARD
-    if (this.getCurrentRole()?.id === 'supplier') {
-      this.addNotification({
-        title: "Permission Denied",
-        message: "Suppliers cannot grant administrative or financial sanctions.",
-        type: "warning"
-      });
-      return false;
+    const role = this.getCurrentRole();
+    if (!role || (role.id !== "general_manager" && role.id !== "admin")) {
+      const msg = "Permission Denied: Only the General Manager (or Admin) is authorized to grant financial sanction and execute digital sign-off.";
+      this.addNotification({ title: "Permission Denied", message: msg, type: "warning" });
+      return { success: false, message: msg };
     }
 
     const bill = this.getBillById(billId);
-    if (!bill) return false;
+    if (!bill) return { success: false, message: "Bill not found" };
 
-    const currentRole = this.getCurrentRole() || { officer: "General Manager", designation: "Competent Authority" };
+    // 5-Gate Prerequisite Validation for GM Sign-Off
+    if (!bill.auditChecklist.weighmentSlipVerified) {
+      const msg = "Sanction Blocked: Godown Manager physical inward verification is pending.";
+      this.addNotification({ title: "Prerequisite Incomplete", message: msg, type: "warning" });
+      return { success: false, message: msg };
+    }
+
+    if (!bill.auditChecklist.statutoryDeductionsCorrect) {
+      const msg = "Sanction Blocked: Branch / Pre-Audit statutory compliance scrutiny is pending.";
+      this.addNotification({ title: "Prerequisite Incomplete", message: msg, type: "warning" });
+      return { success: false, message: msg };
+    }
+
+    if (!bill.auditChecklist.qualityReportCompliant) {
+      const msg = "Sanction Blocked: Quality / moisture lab compliance report is pending or non-compliant.";
+      this.addNotification({ title: "Prerequisite Incomplete", message: msg, type: "warning" });
+      return { success: false, message: msg };
+    }
+
+    if (bill.exception && bill.exception.active) {
+      const msg = "Sanction Blocked: Bill has an unresolved exception. The exception must be authorized/resolved before GM sanction.";
+      this.addNotification({ title: "Exception Active", message: msg, type: "warning" });
+      return { success: false, message: msg };
+    }
+
+    if (!remarks || remarks.trim().length < 5) {
+      const msg = "Mandatory Requirement: Executive sanction remarks/justification must be provided.";
+      this.addNotification({ title: "Justification Required", message: msg, type: "warning" });
+      return { success: false, message: msg };
+    }
+
     const now = new Date();
     const dateStr = now.toISOString().split('T')[0];
     const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const certRef = `NIC-DSC-GJ-${Math.floor(100000 + Math.random() * 900000)}-EXP27`;
 
     bill.status = "Sent to Finance";
     bill.statusColor = "indigo";
     bill.currentStage = "Payment in Process";
-    bill.publicRemark = "Sanction granted by General Manager. Payment file transferred to Finance Branch for RTGS clearance.";
+    bill.publicRemark = `Financial sanction accorded by General Manager (${role.officer}). File transferred to Finance Branch for IFMS electronic disbursement.`;
     bill.auditChecklist.sanctionOrderApproved = true;
     bill.daysInStage = 0;
 
+    bill.digitalSignOff = {
+      officer: role.officer,
+      designation: role.designation,
+      signedAt: `${dateStr} ${timeStr}`,
+      certificateRef: certRef,
+      remarks: remarks,
+      isPrototype: true,
+      disclaimer: "Simulated prototype e-Sign for GSCSCL PS000007 evaluation; not legally binding."
+    };
+
     bill.notingSheet.push({
       timestamp: `${dateStr} ${timeStr}`,
-      officer: currentRole.officer,
-      designation: currentRole.designation,
-      action: "Financial Sanction Accorded",
-      remarks: remarks || `Financial sanction granted under Head: 2408-Food & Civil Supplies. Passed for net disbursement of ₹${bill.netPayable.toLocaleString('en-IN')}/- to Finance Branch.`
+      officer: role.officer,
+      designation: role.designation,
+      action: "Financial Sanction Accorded (Digital Sign-Off Executed)",
+      remarks: `${remarks} [Digital Token: ${certRef} (Simulated prototype e-Sign)] - Sanctioned net payable: ₹${bill.netPayable.toLocaleString('en-IN')}/- under Budget Head 2408-Civil Supplies.`
     });
 
     this.addNotification({
@@ -784,24 +1190,33 @@ class AppStateManager {
     });
 
     this.saveState();
-    return true;
+    return { success: true, message: "Financial sanction granted and bill transferred to Finance." };
   }
 
   disbursePayment(billId, utrNumber = "", mode = "IFMS-Gujarat RTGS Gateway") {
-    // SECURITY GUARD
-    if (this.getCurrentRole()?.id === 'supplier') {
-      this.addNotification({
-        title: "Permission Denied",
-        message: "Suppliers cannot disburse payments or generate treasury UTRs.",
-        type: "warning"
-      });
-      return false;
+    const role = this.getCurrentRole();
+    if (!role || (role.id !== "finance" && role.id !== "admin")) {
+      const msg = "Permission Denied: Only Finance Officers (or Admin) are authorized to disburse treasury payments.";
+      this.addNotification({ title: "Permission Denied", message: msg, type: "warning" });
+      return { success: false, message: msg };
     }
 
     const bill = this.getBillById(billId);
-    if (!bill) return false;
+    if (!bill) return { success: false, message: "Bill not found" };
 
-    const currentRole = this.getCurrentRole() || { officer: "Chief Accounts Officer", designation: "Treasury" };
+    // Prerequisite: Must be approved by GM
+    if (bill.status !== "Sent to Finance" || !bill.auditChecklist.sanctionOrderApproved) {
+      const msg = "Disbursement Blocked: Bill has not received General Manager financial sanction order.";
+      this.addNotification({ title: "Sanction Missing", message: msg, type: "warning" });
+      return { success: false, message: msg };
+    }
+
+    if (bill.exception && bill.exception.active) {
+      const msg = "Disbursement Blocked: Bill has an unresolved exception.";
+      this.addNotification({ title: "Exception Active", message: msg, type: "warning" });
+      return { success: false, message: msg };
+    }
+
     const now = new Date();
     const dateStr = now.toISOString().split('T')[0];
     const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -823,9 +1238,9 @@ class AppStateManager {
 
     bill.notingSheet.push({
       timestamp: `${dateStr} ${timeStr}`,
-      officer: currentRole.officer,
-      designation: currentRole.designation,
-      action: "Electronic Payment Cleared",
+      officer: role.officer,
+      designation: role.designation,
+      action: "Treasury Disbursement Executed",
       remarks: `Net payment of ₹${bill.netPayable.toLocaleString('en-IN')}/- successfully transmitted to ${bill.supplierBank.bankName} (A/c: ${bill.supplierBank.accountNo}). UTR Ref: ${finalUtr}. Voucher: ${voucherNo}.`
     });
 
@@ -836,24 +1251,20 @@ class AppStateManager {
     });
 
     this.saveState();
-    return true;
+    return { success: true, message: `Payment disbursed. UTR: ${finalUtr}.` };
   }
 
   raiseException(billId, exceptionData) {
-    // SECURITY GUARD
-    if (this.getCurrentRole()?.id === 'supplier') {
-      this.addNotification({
-        title: "Permission Denied",
-        message: "Suppliers cannot flag official exceptions.",
-        type: "warning"
-      });
-      return false;
+    const role = this.getCurrentRole();
+    if (!role || role.id === 'supplier') {
+      const msg = "Permission Denied: Suppliers cannot flag official audit exceptions.";
+      this.addNotification({ title: "Permission Denied", message: msg, type: "warning" });
+      return { success: false, message: msg };
     }
 
     const bill = this.getBillById(billId);
-    if (!bill) return false;
+    if (!bill) return { success: false, message: "Bill not found" };
 
-    const currentRole = this.getCurrentRole() || { officer: "Auditing Officer", designation: "GSCSCL" };
     const now = new Date();
     const dateStr = now.toISOString().split('T')[0];
     const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -862,22 +1273,50 @@ class AppStateManager {
     bill.statusColor = "rose";
     bill.currentStage = "Returned for Correction";
     bill.publicRemark = `Returned for Correction: ${exceptionData.reason}`;
+    bill.auditChecklist.qualityReportCompliant = false;
+
     bill.exception = {
       active: true,
+      type: exceptionData.type || "QUALITY_DISCREPANCY",
       reason: exceptionData.reason,
       code: exceptionData.code || "EXC-GEN-01",
-      raisedBy: `${currentRole.officer} (${currentRole.designation})`,
+      raisedBy: `${role.officer} (${role.designation})`,
+      raisedByRole: role.id,
       raisedOn: dateStr,
       severity: exceptionData.severity || "Medium",
-      resolutionNotes: ""
+      measuredMoisture: exceptionData.measuredMoisture || null,
+      ceilingMoisture: exceptionData.ceilingMoisture || null,
+      excessMoisture: exceptionData.excessMoisture || null,
+      proposedDeduction: Number(exceptionData.proposedDeduction || 0),
+      calculationRule: exceptionData.calculationRule || "GSCSCL Agmark Schedule: ₹12.50 per quintal per 1.0% excess moisture.",
+      supportingEvidence: exceptionData.supportingEvidence || "Standard Weighbridge & Lab Inspection Slip",
+      responsibleDepartment: "Pre-Audit Branch & Godown Operations",
+      verifyingDepartment: "pre_audit",
+      authorizingRole: "general_manager",
+      departmentStatus: {
+        godownVerification: { status: "Verified", officer: role.officer, date: dateStr, remarks: "Exception identified during inward check." },
+        preAuditVerification: { status: "Pending", officer: null, date: null, remarks: "Audit verification of proposed deduction pending." },
+        gmAuthorization: { status: "Pending", officer: null, date: null, remarks: "" }
+      },
+      resolutionStatus: "PENDING_VERIFICATION",
+      resolutionNotes: "",
+      history: [
+        {
+          timestamp: `${dateStr} ${timeStr}`,
+          officer: `${role.officer} (${role.designation})`,
+          action: `Exception Flagged [${exceptionData.code || "EXC-GEN-01"}]`,
+          remarks: exceptionData.reason,
+          stage: "Exception Inception"
+        }
+      ]
     };
 
     bill.notingSheet.push({
       timestamp: `${dateStr} ${timeStr}`,
-      officer: currentRole.officer,
-      designation: currentRole.designation,
+      officer: role.officer,
+      designation: role.designation,
       action: `Exception Flagged [${bill.exception.code}]`,
-      remarks: `Bill flagged with exception: ${exceptionData.reason}. Severity: ${bill.exception.severity}. Returned for correction.`
+      remarks: `Bill flagged with exception: ${exceptionData.reason}. Severity: ${bill.exception.severity}. Returned for clarification.`
     });
 
     this.addNotification({
@@ -887,75 +1326,446 @@ class AppStateManager {
     });
 
     this.saveState();
-    return true;
+    return { success: true, message: "Exception raised successfully." };
   }
 
-  resolveException(billId, resolutionData) {
-    // SECURITY GUARD
-    if (this.getCurrentRole()?.id === 'supplier') {
-      this.addNotification({
-        title: "Permission Denied",
-        message: "Suppliers cannot override or officially resolve exceptions.",
-        type: "warning"
-      });
-      return false;
+  // =============================================================
+  // SEPARATED EXCEPTION DECISION METHODS (RBAC ENFORCED)
+  // =============================================================
+
+  verifyExceptionByPreAudit(billId, data = {}) {
+    const role = this.getCurrentRole();
+    if (!role || (role.id !== "pre_audit" && role.id !== "admin")) {
+      const msg = "Permission Denied: Only Pre-Audit staff (or Admin) are authorized to verify exception calculations.";
+      this.addNotification({ title: "Permission Denied", message: msg, type: "warning" });
+      return { success: false, message: msg };
     }
 
     const bill = this.getBillById(billId);
-    if (!bill) return false;
+    if (!bill) return { success: false, message: "Bill not found" };
 
-    const currentRole = this.getCurrentRole() || { officer: "Resolution Officer", designation: "GSCSCL" };
+    if (!bill.exception || !bill.exception.active) {
+      const msg = "Invalid State: No active exception to verify on this bill.";
+      this.addNotification({ title: "Invalid State", message: msg, type: "warning" });
+      return { success: false, message: msg };
+    }
+
+    const proposed = Number(data.proposedDeduction !== undefined ? data.proposedDeduction : (bill.exception.proposedDeduction || 0));
+    if (isNaN(proposed) || proposed < 0) {
+      const msg = "Invalid Deduction Amount: Deduction cannot be negative.";
+      this.addNotification({ title: "Validation Error", message: msg, type: "error" });
+      return { success: false, message: msg };
+    }
+
+    if (proposed > bill.grossAmount) {
+      const msg = "Invalid Deduction Amount: Deduction cannot exceed gross bill amount.";
+      this.addNotification({ title: "Validation Error", message: msg, type: "error" });
+      return { success: false, message: msg };
+    }
+
     const now = new Date();
     const dateStr = now.toISOString().split('T')[0];
     const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    bill.exception.active = false;
-    bill.exception.resolutionNotes = resolutionData.notes || "Resolved by authorized committee / officer.";
-
-    if (resolutionData.penaltyCut && resolutionData.penaltyCut > 0) {
-      bill.deductions.moistureDeduction = (bill.deductions.moistureDeduction || 0) + Number(resolutionData.penaltyCut);
-      const totalDeductions = (bill.deductions.tds194Q || 0) + 
-                              (bill.deductions.gstTds || 0) + 
-                              (bill.deductions.moistureDeduction || 0) + 
-                              (bill.deductions.refractionCut || 0) + 
-                              (bill.deductions.otherRecovery || 0);
-      bill.netPayable = bill.grossAmount - totalDeductions;
+    bill.exception.proposedDeduction = proposed;
+    if (!bill.exception.departmentStatus) {
+      bill.exception.departmentStatus = {};
     }
+    bill.exception.departmentStatus.preAuditVerification = {
+      status: "Verified",
+      officer: role.officer,
+      date: dateStr,
+      remarks: data.remarks || "Audit verification of deduction schedule and supplier explanation completed."
+    };
+    bill.exception.resolutionStatus = "AWAITING_GM_AUTHORIZATION";
 
-    const targetStatus = resolutionData.targetStatus || "Pre-Audit";
-    bill.status = targetStatus;
-    if (targetStatus === "Pre-Audit") {
-      bill.statusColor = "emerald";
-      bill.currentStage = "Waiting for Approval";
-      bill.publicRemark = "Exception resolved. Resumed to Pre-Audit Verification.";
-    } else if (targetStatus === "Approval Pending") {
-      bill.statusColor = "purple";
-      bill.currentStage = "Waiting for Approval";
-      bill.publicRemark = "Exception resolved. Put up for General Manager Sanction.";
-    } else if (targetStatus === "Sent to Finance") {
-      bill.statusColor = "indigo";
-      bill.currentStage = "Payment in Process";
-      bill.publicRemark = "Exception resolved. Sent to Finance for disbursement.";
-    }
+    if (!bill.exception.history) bill.exception.history = [];
+    bill.exception.history.push({
+      timestamp: `${dateStr} ${timeStr}`,
+      officer: `${role.officer} (${role.designation})`,
+      action: "Pre-Audit Exception Verification Completed",
+      remarks: data.remarks || `Audit verified proposed deduction ₹${proposed.toLocaleString('en-IN')}. Submitted to General Manager.`,
+      stage: "Pre-Audit Verification"
+    });
 
     bill.notingSheet.push({
       timestamp: `${dateStr} ${timeStr}`,
-      officer: currentRole.officer,
-      designation: currentRole.designation,
-      action: "Exception Resolved",
-      remarks: `Exception cleared. ${bill.exception.resolutionNotes}. Resumed to ${bill.currentStage}.`
+      officer: role.officer,
+      designation: role.designation,
+      action: "Pre-Audit Exception Verification Cleared",
+      remarks: `Pre-Audit verified exception calculation: Proposed deduction ₹${proposed.toLocaleString('en-IN')}. Recommended for General Manager executive authorization.`
     });
 
     this.addNotification({
-      title: "Exception Resolved",
-      message: `Exception on Bill ${billId} resolved. Resumed to ${bill.currentStage}.`,
+      title: "Pre-Audit Verification Complete",
+      message: `Exception on Bill ${billId} verified by Pre-Audit. Submitted for GM authorization.`,
+      type: "info"
+    });
+
+    this.saveState();
+    return { success: true, message: "Exception verified by Pre-Audit. Ready for GM authorization." };
+  }
+
+  authorizeExceptionByGM(billId, data = {}) {
+    const role = this.getCurrentRole();
+    if (!role || (role.id !== "general_manager" && role.id !== "admin")) {
+      const msg = "Permission Denied: Only the General Manager (or Admin) is authorized to authorize exceptions and quality deductions.";
+      this.addNotification({ title: "Permission Denied", message: msg, type: "warning" });
+      return { success: false, message: msg };
+    }
+
+    const bill = this.getBillById(billId);
+    if (!bill) return { success: false, message: "Bill not found" };
+
+    if (!bill.exception || !bill.exception.active) {
+      const msg = "Invalid State: No active exception to authorize on this bill.";
+      this.addNotification({ title: "Invalid State", message: msg, type: "warning" });
+      return { success: false, message: msg };
+    }
+
+    // Prerequisite: Departmental Verification by Pre-Audit
+    const preAuditStatus = bill.exception.departmentStatus?.preAuditVerification?.status;
+    if (preAuditStatus !== "Verified") {
+      const msg = "Cannot Authorize: Branch / Pre-Audit branch has not yet verified this exception. Departmental clearance is required before GM executive decision.";
+      this.addNotification({ title: "Prerequisite Pending", message: msg, type: "warning" });
+      return { success: false, message: msg };
+    }
+
+    if (!data.justification || data.justification.trim().length < 5) {
+      const msg = "Mandatory Requirement: Detailed executive justification must be provided for GM exception authorization.";
+      this.addNotification({ title: "Justification Required", message: msg, type: "warning" });
+      return { success: false, message: msg };
+    }
+
+    const authorizedDeduction = Number(data.authorizedDeduction !== undefined ? data.authorizedDeduction : (bill.exception.proposedDeduction || 0));
+    if (isNaN(authorizedDeduction) || authorizedDeduction < 0) {
+      const msg = "Invalid Deduction Amount: Authorized deduction cannot be negative.";
+      this.addNotification({ title: "Validation Error", message: msg, type: "error" });
+      return { success: false, message: msg };
+    }
+
+    if (authorizedDeduction > bill.grossAmount) {
+      const msg = "Invalid Deduction Amount: Authorized deduction cannot exceed gross bill amount.";
+      this.addNotification({ title: "Validation Error", message: msg, type: "error" });
+      return { success: false, message: msg };
+    }
+
+    const now = new Date();
+    const dateStr = now.toISOString().split('T')[0];
+    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    // Apply the authorized deduction
+    if (bill.exception.type === "MOISTURE_EXCESS" || bill.exception.code === "EXC-MOISTURE-EXCEEDED") {
+      bill.deductions.moistureDeduction = authorizedDeduction;
+    } else if (bill.exception.type === "QTY_MISMATCH" || bill.exception.code === "EXC-QTY-MISMATCH") {
+      if (bill.exception.measuredQty) {
+        bill.receivedQty = bill.exception.measuredQty;
+      }
+      bill.deductions.refractionCut = (bill.deductions.refractionCut || 0) + authorizedDeduction;
+    } else {
+      bill.deductions.otherRecovery = (bill.deductions.otherRecovery || 0) + authorizedDeduction;
+    }
+
+    // Recalculate net payable
+    const totalDeductions = (bill.deductions.tds194Q || 0) + 
+                            (bill.deductions.gstTds || 0) + 
+                            (bill.deductions.moistureDeduction || 0) + 
+                            (bill.deductions.refractionCut || 0) + 
+                            (bill.deductions.otherRecovery || 0);
+    bill.netPayable = Math.max(0, bill.grossAmount - totalDeductions);
+
+    // Quality check passes once authorized deduction is accepted
+    bill.auditChecklist.qualityReportCompliant = true;
+
+    bill.exception.active = false;
+    bill.exception.resolutionStatus = "AUTHORIZED";
+    bill.exception.authorizedDeduction = authorizedDeduction;
+    bill.exception.resolutionNotes = `Authorized by GM (${role.officer}): ${data.justification} [Authorized Quality Cut: ₹${authorizedDeduction.toLocaleString('en-IN')}]`;
+    bill.exception.departmentStatus.gmAuthorization = {
+      status: "Authorized",
+      officer: role.officer,
+      date: dateStr,
+      remarks: data.justification
+    };
+
+    if (!bill.exception.history) bill.exception.history = [];
+    bill.exception.history.push({
+      timestamp: `${dateStr} ${timeStr}`,
+      officer: `${role.officer} (${role.designation})`,
+      action: "GM Exception Authorization Granted",
+      remarks: `Deduction ₹${authorizedDeduction.toLocaleString('en-IN')} approved. Justification: ${data.justification}`,
+      stage: "Executive Authorization"
+    });
+
+    bill.status = "Approval Pending";
+    bill.statusColor = "purple";
+    bill.currentStage = "Waiting for Approval";
+    bill.publicRemark = `Exception authorized by General Manager with deduction of ₹${authorizedDeduction.toLocaleString('en-IN')}. Bill queued for executive financial sanction.`;
+
+    bill.notingSheet.push({
+      timestamp: `${dateStr} ${timeStr}`,
+      officer: role.officer,
+      designation: role.designation,
+      action: "Exception Authorized by GM",
+      remarks: `GM Authorization Granted: ${data.justification}. Authorized deduction applied: ₹${authorizedDeduction.toLocaleString('en-IN')}. Revised Net Payable: ₹${bill.netPayable.toLocaleString('en-IN')}/-. Positioned for Sanction Order sign-off.`
+    });
+
+    this.addNotification({
+      title: "Exception Authorized by GM",
+      message: `General Manager authorized exception on Bill ${billId} with deduction of ₹${authorizedDeduction.toLocaleString('en-IN')}.`,
       type: "success"
     });
 
     this.saveState();
-    return true;
+    return { success: true, message: `Exception authorized with deduction of ₹${authorizedDeduction.toLocaleString('en-IN')}.` };
+  }
+
+  returnExceptionForClarification(billId, data = {}) {
+    const role = this.getCurrentRole();
+    if (!role || (role.id !== "general_manager" && role.id !== "pre_audit" && role.id !== "godown_manager" && role.id !== "admin")) {
+      const msg = "Permission Denied: Unauthorized role attempted to return bill.";
+      this.addNotification({ title: "Permission Denied", message: msg, type: "warning" });
+      return { success: false, message: msg };
+    }
+
+    const bill = this.getBillById(billId);
+    if (!bill) return { success: false, message: "Bill not found" };
+
+    if (!data.remarks || data.remarks.trim().length < 5) {
+      const msg = "Mandatory Requirement: Remarks must be provided when returning for clarification.";
+      this.addNotification({ title: "Remarks Required", message: msg, type: "warning" });
+      return { success: false, message: msg };
+    }
+
+    const targetDept = data.targetDepartment || "Responsible Branch / Supplier";
+    const now = new Date();
+    const dateStr = now.toISOString().split('T')[0];
+    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    bill.status = "Exception Raised";
+    bill.statusColor = "rose";
+    bill.currentStage = "Returned for Correction";
+    bill.publicRemark = `Returned for Clarification (${targetDept}): ${data.remarks}`;
+
+    if (!bill.exception) {
+      bill.exception = { active: true, reason: data.remarks, code: "EXC-CLARIFICATION", history: [] };
+    } else {
+      bill.exception.active = true;
+      bill.exception.resolutionStatus = "RETURNED_FOR_CLARIFICATION";
+    }
+
+    if (!bill.exception.history) bill.exception.history = [];
+    bill.exception.history.push({
+      timestamp: `${dateStr} ${timeStr}`,
+      officer: `${role.officer} (${role.designation})`,
+      action: "Returned for Clarification",
+      remarks: `Target: ${targetDept} | Query: ${data.remarks}`,
+      stage: "Clarification"
+    });
+
+    bill.notingSheet.push({
+      timestamp: `${dateStr} ${timeStr}`,
+      officer: role.officer,
+      designation: role.designation,
+      action: "Returned for Clarification",
+      remarks: `Returned to ${targetDept}: "${data.remarks}". Bill moved to clarification queue.`
+    });
+
+    this.addNotification({
+      title: "Bill Returned for Clarification",
+      message: `Bill ${billId} returned to ${targetDept} by ${role.officer}.`,
+      type: "info"
+    });
+
+    this.saveState();
+    return { success: true, message: `Bill returned for clarification to ${targetDept}.` };
+  }
+
+  rejectExceptionDecision(billId, data = {}) {
+    const role = this.getCurrentRole();
+    if (!role || (role.id !== "general_manager" && role.id !== "admin")) {
+      const msg = "Permission Denied: Only General Manager (or Admin) can reject exception resolutions.";
+      this.addNotification({ title: "Permission Denied", message: msg, type: "warning" });
+      return { success: false, message: msg };
+    }
+
+    const bill = this.getBillById(billId);
+    if (!bill) return { success: false, message: "Bill not found" };
+
+    if (!data.reason || data.reason.trim().length < 5) {
+      const msg = "Mandatory Requirement: Detailed rejection reason required.";
+      this.addNotification({ title: "Reason Required", message: msg, type: "warning" });
+      return { success: false, message: msg };
+    }
+
+    const now = new Date();
+    const dateStr = now.toISOString().split('T')[0];
+    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    if (bill.exception) {
+      bill.exception.active = true;
+      bill.exception.resolutionStatus = "REJECTED";
+      if (!bill.exception.departmentStatus) bill.exception.departmentStatus = {};
+      bill.exception.departmentStatus.gmAuthorization = {
+        status: "Rejected",
+        officer: role.officer,
+        date: dateStr,
+        remarks: data.reason
+      };
+
+      if (!bill.exception.history) bill.exception.history = [];
+      bill.exception.history.push({
+        timestamp: `${dateStr} ${timeStr}`,
+        officer: `${role.officer} (${role.designation})`,
+        action: "Exception Resolution Rejected",
+        remarks: `Rejection Reason: ${data.reason}`,
+        stage: "Executive Rejection"
+      });
+    }
+
+    bill.publicRemark = `Exception resolution rejected by General Manager: ${data.reason}`;
+
+    bill.notingSheet.push({
+      timestamp: `${dateStr} ${timeStr}`,
+      officer: role.officer,
+      designation: role.designation,
+      action: "Exception Resolution Rejected",
+      remarks: `GM Rejection: ${data.reason}. Consignment deduction or waiver rejected. Case referred back for inquiry.`
+    });
+
+    this.addNotification({
+      title: "Exception Resolution Rejected",
+      message: `General Manager rejected exception resolution on Bill ${billId}.`,
+      type: "warning"
+    });
+
+    this.saveState();
+    return { success: true, message: "Exception resolution rejected." };
+  }
+
+  resumeWorkflowAfterException(billId, targetStage = "Pre-Audit") {
+    const role = this.getCurrentRole();
+    if (!role || (role.id !== "general_manager" && role.id !== "pre_audit" && role.id !== "admin")) {
+      const msg = "Permission Denied: Only General Manager, Pre-Audit (or Admin) can resume workflow.";
+      this.addNotification({ title: "Permission Denied", message: msg, type: "warning" });
+      return { success: false, message: msg };
+    }
+
+    const bill = this.getBillById(billId);
+    if (!bill) return { success: false, message: "Bill not found" };
+
+    // Strict Rule: Cannot resume while an exception is active
+    if (bill.exception && bill.exception.active) {
+      const msg = "Action Blocked: Exception is still active and unresolved. It must be authorized or resolved before advancing the workflow.";
+      this.addNotification({ title: "Exception Active", message: msg, type: "warning" });
+      return { success: false, message: msg };
+    }
+
+    if (targetStage === "Approval Pending") {
+      if (!bill.auditChecklist.weighmentSlipVerified || !bill.auditChecklist.statutoryDeductionsCorrect) {
+        const msg = "Prerequisite Incomplete: Cannot advance to Approval Pending without Godown and Pre-Audit clearance.";
+        this.addNotification({ title: "Prerequisite Incomplete", message: msg, type: "warning" });
+        return { success: false, message: msg };
+      }
+    }
+
+    const now = new Date();
+    const dateStr = now.toISOString().split('T')[0];
+    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    bill.status = targetStage;
+    bill.statusColor = targetStage === "Approval Pending" ? "purple" : "emerald";
+    bill.currentStage = targetStage === "Approval Pending" ? "Waiting for Approval" : "Branch / Pre-Audit Verification";
+    bill.publicRemark = `Workflow resumed to ${targetStage} following authorized exception resolution.`;
+    bill.daysInStage = 0;
+
+    bill.notingSheet.push({
+      timestamp: `${dateStr} ${timeStr}`,
+      officer: role.officer,
+      designation: role.designation,
+      action: `Workflow Resumed to ${targetStage}`,
+      remarks: `Exception resolved and verified. Bill workflow resumed to ${targetStage}.`
+    });
+
+    this.addNotification({
+      title: "Workflow Resumed",
+      message: `Bill ${billId} resumed to ${targetStage}.`,
+      type: "success"
+    });
+
+    this.saveState();
+    return { success: true, message: `Workflow resumed to ${targetStage}.` };
+  }
+
+  reopenResolvedException(billId, data = {}) {
+    const role = this.getCurrentRole();
+    if (!role || (role.id !== "general_manager" && role.id !== "admin")) {
+      const msg = "Permission Denied: Only General Manager (or Admin) can reopen a resolved exception.";
+      this.addNotification({ title: "Permission Denied", message: msg, type: "warning" });
+      return { success: false, message: msg };
+    }
+
+    const bill = this.getBillById(billId);
+    if (!bill) return { success: false, message: "Bill not found" };
+
+    if (!data.reason || data.reason.trim().length < 5) {
+      const msg = "Mandatory Requirement: Reason for reopening must be recorded.";
+      this.addNotification({ title: "Reason Required", message: msg, type: "warning" });
+      return { success: false, message: msg };
+    }
+
+    const now = new Date();
+    const dateStr = now.toISOString().split('T')[0];
+    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    if (!bill.exception) {
+      bill.exception = { reason: data.reason, code: "EXC-REOPENED" };
+    }
+    bill.exception.active = true;
+    bill.exception.resolutionStatus = "REOPENED_FOR_REVIEW";
+    bill.status = "Exception Raised";
+    bill.statusColor = "rose";
+    bill.currentStage = "Exception Management Hub";
+    bill.auditChecklist.sanctionOrderApproved = false;
+    bill.publicRemark = `Exception reopened by General Manager for review: ${data.reason}`;
+
+    if (!bill.exception.history) bill.exception.history = [];
+    bill.exception.history.push({
+      timestamp: `${dateStr} ${timeStr}`,
+      officer: `${role.officer} (${role.designation})`,
+      action: "Exception Reopened",
+      remarks: data.reason,
+      stage: "Reopened / Under Re-examination"
+    });
+
+    bill.notingSheet.push({
+      timestamp: `${dateStr} ${timeStr}`,
+      officer: role.officer,
+      designation: role.designation,
+      action: "Exception Reopened by GM",
+      remarks: `Resolved exception reopened by General Manager: "${data.reason}". Sanction order revoked for re-examination.`
+    });
+
+    this.addNotification({
+      title: "Exception Reopened",
+      message: `Exception on Bill ${billId} reopened by General Manager.`,
+      type: "warning"
+    });
+
+    this.saveState();
+    return { success: true, message: "Exception reopened for review." };
+  }
+
+  // Backward compatibility wrapper
+  resolveException(billId, resolutionData = {}) {
+    return this.authorizeExceptionByGM(billId, {
+      justification: resolutionData.notes || "Authorized through legacy resolve interface.",
+      authorizedDeduction: resolutionData.penaltyCut || 0
+    });
   }
 }
+
+// Global App State Instance
 
 // Global App State Instance
 const AppState = new AppStateManager();

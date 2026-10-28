@@ -3,14 +3,253 @@
  * Reusable renderers for government portal dashboards, tables, modals & sheets
  */
 
+// Gujarati Numeral Converter
+function toGujaratiDigits(str) {
+  if (str === null || str === undefined) return "";
+  const gujaratiDigits = ['૦', '૧', '૨', '૩', '૪', '૫', '૬', '૭', '૮', '૯'];
+  return String(str).replace(/[0-9]/g, d => gujaratiDigits[d]);
+}
+
+// Comprehensive Government Gujarati Translations Dictionary
+const GSCSCL_TRANSLATIONS = {
+
+  // Godown Manager Workflow Translations
+  "Supply Orders": "સપ્લાય ઓર્ડર્સ",
+  "Deliveries / Check Inward": "આવેલ માલ / ડિલિવરી ચકાસણી",
+  "Delivery Receipts (ePOD)": "ડિલિવરી પાવતી (ePOD)",
+  "Delivery History": "ડિલિવરી ઇતિહાસ",
+  "Check Delivery": "ડિલિવરી તપાસો",
+  "Issue Delivery Receipt": "ડિલિવરી રસીદ આપો",
+  "Report Delivery Issue": "ડિલિવરી સમસ્યા નોંધાવો",
+  "Waiting for Delivery": "ડિલિવરીની રાહમાં",
+  "Waiting for Verification": "ચકાસણી બાકી",
+  "Verification in Progress": "ચકાસણી ચાલુ છે",
+  "Delivery Confirmed": "ડિલિવરી મંજૂર",
+  "Receipt Issued": "રસીદ અપાઈ ગઈ",
+  "Needs Correction": "સુધારણા જરૂરી",
+  "Clarification Submitted": "સ્પષ્ટતા મોકલેલ છે",
+  "Expected Quantity": "અપેક્ષિત જથ્થો",
+  "Actual Received": "વાસ્તવિક મળેલ",
+  "Gross Weight": "કુલ વજન (ગ્રોસ)",
+  "Tare Weight": "ખાલી વાહન વજન (ટેર)",
+  "Net Weight": "ચોખ્ખું વજન (નેટ)",
+  "Moisture Content": "ભેજનું પ્રમાણ",
+  "Weighbridge Slip": "વેબ્રિજ પહોંચ",
+
+  // Common Navigation & Top Bar
+  "Language / ભાષા:": "ભાષા / Language:",
+  "Language:": "ભાષા:",
+  "PDS Helpline / હેલ્પલાઇન:": "પી.ડી.એસ. હેલ્પલાઇન:",
+  "Government of Gujarat • ગુજરાત સરકાર": "ગુજરાત સરકાર • સરકારી સાહસ",
+  "PDS Procurement Cell": "જાહેર વિતરણ ખરીદ સેલ",
+  "ISO 9001:2015": "આઇ.એસ.ઓ. ૯૦૦૧:૨૦૧૫",
+  "IFMS Gujarat Integrated": "આઇ.એફ.એમ.એસ. ગુજરાત સંકલિત",
+  "ગુજરાત રાજ્ય નાગરિક પુરવઠા નિગમ લિમિટેડ (GSCSCL)": "ગુજરાત રાજ્ય નાગરિક પુરવઠા નિગમ લિમિટેડ (GSCSCL)",
+  "Automated Commodity Supplier Billing & Payment Processing System": "સ્વયંસંચાલિત કૃષિ પુરવઠા બિલિંગ અને ચૂકવણી પ્રક્રિયા પ્રણાલી",
+  "Audit & Workflow Notifications": "ઓડિટ અને કાર્યપ્રવાહ સૂચનાઓ",
+  "Mark all read": "બધા વંચાયેલા ચિહ્નિત કરો",
+  "Logout / સાઇન આઉટ": "સાઇન આઉટ / લૉગઆઉટ",
+  "Sign Out of Session": "સત્રમાંથી બહાર નીકળો",
+  "Authenticated Session:": "પ્રમાણિત સત્ર:",
+  "IFMS Core Gateway Online": "આઇ.એફ.એમ.એસ. કોર ગેટવે કાર્યરત",
+  "Procurement Season:": "ખરીદ સત્ર:",
+  "Exception Hub": "વિસંગતતા કેન્દ્ર",
+  "Reset Demo Data": "ડેમો ડેટા ફરીથી સેટ કરો",
+
+  // Roles & Designations
+  "Pre-Audit Staff": "પ્રી-ઓડિટ સ્ટાફ",
+  "Senior Accounts Officer & Pre-Auditor": "સિનિયર હિસાબી અધિકારી અને પ્રી-ઓડિટર",
+  "Pre-Audit Scrutiny Cell, Gandhinagar Head Office": "પ્રી-ઓડિટ ચકાસણી શાખા, ગાંધીનગર મુખ્ય કચેરી",
+  "Supplier / Vendor": "પુરવઠાદાર / વેન્ડર",
+  "Godown Manager": "ગોડાઉન મેનેજર",
+  "General Manager": "જનરલ મેનેજર (સક્ષમ સત્તા)",
+  "Finance Branch": "નાણાં શાખા / તિજોરી એકમ",
+  "Management / Admin Monitor": "સંચાલન અને દેખરેખ વહીવટકર્તા",
+
+  // Tabs
+  "Pre-Audit Dashboard": "પ્રી-ઓડિટ ડેશબોર્ડ",
+  "Pre-Audit Work Queue": "પ્રી-ઓડિટ કાર્ય કતાર",
+  "All Audited Cases": "તમામ ઓડિટ થયેલ કેસો",
+  "Audit Queries Hub": "ઓડિટ પ્રશ્નો અને વિસંગતતા કેન્દ્ર",
+  "Dashboard": "ડેશબોર્ડ",
+  "Inward Verification Queue": "ઇનવર્ડ ચકાસણી કતાર",
+  "District Stock & Bills": "જિલ્લા સ્ટોક અને બિલો",
+  "Discrepancy Log": "વિસંગતતા લોગ",
+  "Sanction Approval Queue": "નાણાકીય મંજૂરી કતાર",
+  "State Procurement Register": "રાજ્ય ખરીદ રજિસ્ટર",
+  "Exception Overrides": "વિસંગતતા સુધારણા",
+  "Payment Release Queue": "ચૂકવણી મુક્તિ કતાર",
+  "Paid Vouchers & RTGS Log": "ચૂકવેલ વાઉચર અને આર.ટી.જી.એસ. લોગ",
+  "Banking Issues": "બેંકિંગ પ્રશ્નો",
+  "Management Monitor": "મેનેજમેન્ટ મોનિટર",
+  "Pipeline & SLA Tracker": "પાઇપલાઇન અને એસ.એલ.એ. ટ્રેકર",
+  "Master Bill Ledger": "માસ્ટર બિલ લેજર",
+  "My Invoices & Bills": "મારા ઇન્વોઇસ અને બિલો",
+  "Godown Receipts (GRN)": "ગોડાઉન પહોંચ (જી.આર.એન.)",
+  "Queries & Remarks": "પ્રશ્નો અને સત્તાવાર ટિપ્પણીઓ",
+
+  // Pre-Audit Dashboard Specifics
+  "Pre-Audit Pending": "પેન્ડિંગ પ્રી-ઓડિટ બિલ",
+  "Pending Audit Value": "ઓડિટ હેઠળની કુલ રકમ",
+  "Audit Cleared This Month": "આ મહિને મંજૂર થયેલ ઓડિટ બિલ",
+  "Statutory Tax Compliance": "કાનૂની કર પાલન",
+  "Inward verified cases": "ગોડાઉન ચકાસાયેલ કેસો",
+  "Total value undergoing scrutiny": "તપાસ હેઠળની કુલ રકમ",
+  "Passed to GM for sanction": "જનરલ મેનેજરને મંજૂરી માટે મોકલેલ",
+  "Sec 194Q & GST TDS verified": "કલમ ૧૯૪-ક્યુ અને જીએસટી ટીડીએસ ચકાસાયેલ",
+  "Click to open pending bills queue": "પેન્ડિંગ બિલ કતાર ખોલવા ક્લિક કરો",
+  "Click to view cleared bills & history": "મંજૂર બિલ અને ઇતિહાસ જોવા ક્લિક કરો",
+  "Bills Needing Pre-Audit": "પ્રી-ઓડિટ બાકી બિલો",
+  "Audit Cleared Bills (This Month)": "ઓડિટ ક્લિયર થયેલ બિલો (આ મહિને)",
+  "Actionable Pre-Audit Scrutiny Queue": "કાર્યવાહી કરવા યોગ્ય પ્રી-ઓડિટ તપાસ કતાર",
+  "Conduct digital 3-way match, review noting sheet & compute statutory deductions": "ડિજિટલ ૩-સ્તરીય મેળ તપાસો, નોટિંગ શીટ સમીક્ષા કરો અને કાનૂની કર કપાત ગણો",
+  "Examine invoice accuracy, verify test compliance and forward to General Manager": "ઇન્વોઇસની ચોકસાઈ તપાસો, લેબ રિપોર્ટ ચકાસો અને જનરલ મેનેજરને આગળ મોકલો",
+  "All Audited & Scrutinized Bills": "તમામ ઓડિટ અને તપાસ પૂર્ણ થયેલ બિલો",
+  "Track full clearance audit trail, statutory tax deductions, and approval noting history": "સંપૂર્ણ ઓડિટ ટ્રાયલ, કાનૂની કર કપાત અને મંજૂરી નોટિંગ ઇતિહાસ ટ્રેક કરો",
+
+  // District & Branch Selection
+  "Location Filter / Branch Scope": "સ્થળ ફિલ્ટર / શાખા કાર્યક્ષેત્ર",
+  "Select District & Operating Branch": "જિલ્લો અને સંચાલન શાખા પસંદ કરો",
+  "District:": "જિલ્લો:",
+  "Branch / Godown:": "શાખા / ગોડાઉન:",
+  "All Districts": "તમામ જિલ્લાઓ",
+  "All Branches": "તમામ શાખાઓ",
+  "Reset": "રીસેટ કરો",
+  "Active Filter:": "સક્રિય ફિલ્ટર:",
+
+  // Table Columns
+  "Bill ID & Ref": "બિલ નંબર અને સંદર્ભ",
+  "Supplier & District": "પુરવઠાદાર અને જિલ્લો",
+  "Branch / Godown": "શાખા / ગોડાઉન",
+  "Commodity & GRN": "પાક / જથ્થો અને જી.આર.એન.",
+  "Quantity": "જથ્થો",
+  "Net Amount": "ચોખ્ખી ચૂકવવાપાત્ર રકમ",
+  "Gross Amount": "કુલ રકમ",
+  "Lifecycle Status": "પ્રક્રિયા સ્થિતિ",
+  "Actions": "કાર્યવાહી",
+  "Clearance Date": "ઓડિટ ક્લિયર તારીખ",
+  "Audit Details & Notes": "ઓડિટ વિગતો અને નોંધ",
+
+  // Table Action Buttons
+  "Pre-Audit Scrutiny": "પ્રી-ઓડિટ ચકાસણી",
+  "View Audit History": "ઓડિટ ઇતિહાસ જુઓ",
+  "Audit History": "ઓડિટ ઇતિહાસ",
+  "Details": "વિગતો જુઓ",
+  "Inspect & Expedite": "તપાસો અને ઝડપી કરો",
+  "Verify Inward": "ઇનવર્ડ ચકાસો",
+  "Sanction Bill": "બિલ મંજૂર કરો",
+  "Disburse RTGS": "આર.ટી.જી.એસ. ચૂકવો",
+  "Voucher": "વાઉચર",
+  "Resolve": "ઉકેલો",
+  "View Complete Case": "સંપૂર્ણ કેસ જુઓ",
+
+  // Status Labels
+  "Draft": "ડ્રાફ્ટ (કાચો)",
+  "Submitted": "સબમિટ થયેલ",
+  "Under Verification": "ગોડાઉન ચકાસણી હેઠળ",
+  "Pre-Audit": "પ્રી-ઓડિટ ચકાસણી",
+  "Pre-Audit Stage": "પ્રી-ઓડિટ તબક્કો",
+  "Approval Pending": "જી.એમ. મંજૂરી બાકી",
+  "Sent to Finance": "નાણાં શાખામાં મોકલેલ",
+  "Payment Processed": "ચૂકવણી સંપન્ન",
+  "Exception Raised": "વિસંગતતા નોંધાયેલ",
+  "Waiting for Verification": "ચકાસણીની પ્રતીક્ષામાં",
+  "Waiting for Approval": "મંજૂરીની પ્રતીક્ષામાં",
+  "Payment in Process": "ચૂકવણી પ્રક્રિયા હેઠળ",
+  "Payment Completed": "ચૂકવણી પૂર્ણ થયેલ",
+  "Returned for Correction": "સુધારણા માટે પરત",
+
+  // Filter Bar
+  "Search by Bill ID, Supplier, Commodity, GRN, District...": "બિલ નંબર, સપ્લાયર, પાક, જીઆરએન, જિલ્લાથી શોધો...",
+  "Status: All Stages": "સ્થિતિ: તમામ તબક્કા",
+  "Category: All (CGP / TOC)": "કેટેગરી: તમામ (CGP / TOC)",
+  "CGP (Grains & Pulses)": "CGP (અનાજ અને કઠોળ)",
+  "TOC (Salt, Bags, Oil)": "TOC (મીઠું, બારદાન, તેલ)",
+  "District: All Districts": "જિલ્લો: તમામ જિલ્લાઓ",
+  "Reset Filters": "ફિલ્ટર્સ રીસેટ કરો",
+  "No Matching Bills Found": "કોઈ મેળ ખાતા બિલો મળ્યા નથી",
+  "Try modifying your search query or stage filters.": "તમારી શોધ અથવા તબક્કા ફિલ્ટર્સ બદલીને પ્રયાસ કરો.",
+
+  // Modals & Checklist
+  "Mandatory GSCSCL Audit Verification Checklist": "જી.એસ.સી.એસ.સી.એલ. ફરજિયાત પ્રી-ઓડિટ ચકાસણી યાદી",
+  "1. Weighbridge Gross & Tare Receipts Reconciled": "૧. વેબ્રિજ ગ્રોસ અને ટેર વજન પહોંચ મેળ ખાધેલ છે",
+  "2. Agmark / FSSAI Lab Quality Report Compliant": "૨. એગમાર્ક / એફએસએસએઆઈ લેબ ગુણવત્તા રિપોર્ટ સુસંગત છે",
+  "3. Active GSTIN & e-Way Bill Clearance Confirmed": "૩. સક્રિય જીએસટીઆઇએન અને ઈ-વે બિલ મંજૂરી ચકાસાયેલ છે",
+  "4. Statutory Deductions (TDS 194Q & GST TDS 2%) Verified": "૪. કાનૂની કપાત (ટીડીએસ ૧૯૪Q ૦.૧% અને જીએસટી ટીડીએસ ૨%) ગણાયેલ છે",
+  "5. No Dual Claim Certificate Endorsed by Godown": "૫. ગોડાઉન દ્વારા કોઈ ડુપ્લિકેટ દાવો ન હોવાનું પ્રમાણપત્ર આપેલ છે",
+  "6. Sanction Order & Budget Provision Allocated": "૬. મંજૂરી ઓર્ડર અને બજેટ જોગવાઈ ફાળવવામાં આવેલ છે",
+  "Financial Settlement & Deduction Schedule": "નાણાકીય ચુકવણી અને કપાત પત્રક",
+  "IT TDS 194Q (0.1%):": "આવકવેરા ટીડીએસ ૧૯૪Q (૦.૧%):",
+  "GST TDS (2.0%):": "જીએસટી ટીડીએસ (૨.૦%):",
+  "Refraction / Cuts:": "ગુણવત્તા કપાત / રિફ્રેક્શન:",
+  "Net Payable:": "ચોખ્ખી ચૂકવવાપાત્ર રકમ:",
+  "Gross:": "કુલ દાવો:",
+  "Pass Pre-Audit & Forward to GM": "પ્રી-ઓડિટ મંજૂર કરો અને જનરલ મેનેજરને મોકલો",
+  "Raise Exception / Query": "વિસંગતતા / પ્રશ્ન નોંધો",
+  "Close": "બંધ કરો",
+  "Audit History Trail & Milestones": "ઓડિટ ઇતિહાસ અને સમયરેખા ટ્રેકિંગ",
+  "Detailed Scrutiny Milestones": "વિગતવાર તપાસ માઇલસ્ટોન",
+  "Official Noting Sheet Minutes": "સત્તાવાર લીલી નોટિંગ શીટ વિગતો",
+  "Pre-Audit Scrutiny Clearance": "પ્રી-ઓડિટ ચકાસણી મંજૂરી",
+  "Physical Stock Acceptance": "ભૌતિક જથ્થા સ્વીકૃતિ",
+  "Initial Bill Submission": "પ્રારંભિક બિલ સબમિશન",
+  "Competent Authority Sanction": "સક્ષમ સત્તા મંજૂરી",
+  "Treasury Disbursement (IFMS)": "તિજોરી ચૂકવણી (આઇ.એફ.એમ.એસ.)",
+
+  // Login Page
+  "SSO Portal Sign-In": "એસ.એસ.ઓ. પોર્ટલ સાઇન-ઇન",
+  "સત્તાવાર લૉગિન • Official Portal Access": "સત્તાવાર લૉગિન • GSCSCL પોર્ટલ",
+  "Quick-Demo 1-Click Login:": "ઝડપી ડેમો ૧-ક્લિક લૉગિન:",
+  "Click any persona to log in instantly:": "ત્વરિત લૉગિન માટે કોઈપણ ભૂમિકા પર ક્લિક કરો:",
+  "User ID / Employee Code / Vendor ID": "વપરાશકર્તા આઇડી / કર્મચારી કોડ / વેન્ડર આઇડી",
+  "Password / ગુપ્ત કોડ": "પાસવર્ડ / ગુપ્ત કોડ",
+  "Forgot Password?": "પાસવર્ડ ભૂલી ગયા છો?",
+  "Security Captcha Verification": "સુરક્ષા કેપ્ચા ચકાસણી",
+  "Enter Captcha": "કેપ્ચા દાખલ કરો",
+  "Remember session on this device": "આ ઉપકરણ પર સત્ર યાદ રાખો",
+  "Sign In to GSCSCL Portal • સાઇન ઇન કરો": "GSCSCL પોર્ટલમાં સાઇન ઇન કરો",
+  "Digital Gujarat SSO": "ડિજિટલ ગુજરાત SSO"
+};
+
 const UI = {
+  // Translation helper
+  t(key, fallback) {
+    if (typeof AppState !== 'undefined' && AppState.getLanguage() === 'gu') {
+      if (GSCSCL_TRANSLATIONS && GSCSCL_TRANSLATIONS[key]) {
+        return GSCSCL_TRANSLATIONS[key];
+      }
+    }
+    return fallback !== undefined ? fallback : key;
+  },
+
+  // Format Number with locale & digits
+  formatNumber(val) {
+    const formatted = Number(val || 0).toLocaleString('en-IN');
+    if (typeof AppState !== 'undefined' && AppState.getLanguage() === 'gu') {
+      return toGujaratiDigits(formatted);
+    }
+    return formatted;
+  },
+
+  // Format Digits string
+  formatDigits(val) {
+    if (typeof AppState !== 'undefined' && AppState.getLanguage() === 'gu') {
+      return toGujaratiDigits(val);
+    }
+    return String(val !== undefined && val !== null ? val : "");
+  },
+
   // Format Indian Currency
   formatINR(val) {
-    return new Intl.NumberFormat('en-IN', {
+    const formatted = new Intl.NumberFormat('en-IN', {
       style: 'currency',
       currency: 'INR',
       maximumFractionDigits: 0
     }).format(val || 0);
+    if (typeof AppState !== 'undefined' && AppState.getLanguage() === 'gu') {
+      return toGujaratiDigits(formatted);
+    }
+    return formatted;
   },
 
   // Simple English Status Badge for Suppliers
@@ -67,7 +306,7 @@ const UI = {
     return `
       <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border ${s.bg}">
         <i class="fa-solid ${s.icon} text-[11px]"></i>
-        <span>${s.label}</span>
+        <span>${this.t(s.label)}</span>
       </span>
     `;
   },
@@ -126,7 +365,7 @@ const UI = {
     return `
       <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border ${s.bg}">
         <i class="fa-solid ${s.icon} text-[11px]"></i>
-        <span>${s.label}</span>
+        <span>${this.t(s.label)}</span>
       </span>
     `;
   },
@@ -139,26 +378,33 @@ const UI = {
     return `<span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-sky-100 text-sky-800 border border-sky-200" title="Textile & Other Commodities">TOC</span>`;
   },
 
-  // Reusable Metric KPI Card
-  renderKpiCard(title, value, subtext, icon, colorClass, trendText = "", trendIcon = "fa-arrow-up") {
+  // Reusable Metric KPI Card with interactive click support
+  renderKpiCard(title, value, subtext, icon, colorClass, trendText = "", trendIcon = "fa-arrow-up", onClick = "") {
+    const translatedTitle = this.t(title);
+    const translatedSubtext = subtext ? this.t(subtext) : "";
     return `
-      <div class="portal-card p-5 relative overflow-hidden group">
+      <div ${onClick ? `onclick="${onClick}" role="button" tabindex="0"` : ''} 
+        class="portal-card p-5 relative overflow-hidden group transition-all duration-200 ${
+          onClick ? 'cursor-pointer hover:shadow-lg hover:border-teal-500 hover:-translate-y-0.5 active:translate-y-0 select-none' : ''
+        }">
         <div class="flex items-start justify-between">
           <div>
-            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">${title}</p>
+            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+              <span>${translatedTitle}</span>
+              ${onClick ? '<i class="fa-solid fa-arrow-up-right-from-square text-[10px] text-teal-600 opacity-60 group-hover:opacity-100 transition-opacity"></i>' : ''}
+            </p>
             <h3 class="text-2xl font-bold text-slate-900 tracking-tight">${value}</h3>
-            ${subtext ? `<p class="text-xs text-slate-500 mt-1">${subtext}</p>` : ''}
+            ${translatedSubtext ? `<p class="text-xs text-slate-500 mt-1">${translatedSubtext}</p>` : ''}
           </div>
-          <div class="w-12 h-12 rounded-xl flex items-center justify-center ${colorClass} shadow-sm group-hover:scale-105 transition-transform">
+          <div class="w-12 h-12 rounded-xl flex items-center justify-center ${colorClass} shadow-sm group-hover:scale-110 transition-transform">
             <i class="fa-solid ${icon} text-lg"></i>
           </div>
         </div>
         ${trendText ? `
           <div class="mt-3 pt-3 border-t border-slate-100 flex items-center text-xs text-slate-600">
             <span class="text-emerald-600 font-medium inline-flex items-center gap-1 mr-2">
-              <i class="fa-solid ${trendIcon}"></i> ${trendText}
+              <i class="fa-solid ${trendIcon}"></i> ${this.t(trendText)}
             </span>
-            <span>vs previous week</span>
           </div>
         ` : ''}
       </div>

@@ -16,12 +16,66 @@ class AppController {
     this.simulatedOtp = "";
   }
 
+  setLanguage(lang) {
+    if (typeof AppState !== 'undefined' && AppState.setLanguage) {
+      AppState.setLanguage(lang);
+    }
+    this.updateLanguageUI();
+    this.render();
+  }
+
+  updateLanguageUI() {
+    const currentLang = typeof AppState !== 'undefined' && AppState.getLanguage ? AppState.getLanguage() : 'en';
+    const btnEn = document.getElementById('lang-btn-en');
+    const btnGu = document.getElementById('lang-btn-gu');
+    if (btnEn && btnGu) {
+      if (currentLang === 'gu') {
+        btnGu.className = "px-3 py-1 rounded-md transition-all text-white bg-blue-600 shadow-xs font-gujarati font-bold";
+        btnEn.className = "px-3 py-1 rounded-md transition-all text-slate-300 hover:text-white bg-transparent font-medium";
+      } else {
+        btnEn.className = "px-3 py-1 rounded-md transition-all text-white bg-blue-600 shadow-xs font-bold";
+        btnGu.className = "px-3 py-1 rounded-md transition-all text-slate-300 hover:text-white bg-transparent font-gujarati font-medium";
+      }
+    }
+  }
+
+  handlePreAuditDistrictChange(district) {
+    if (typeof AppState !== 'undefined' && AppState.setPreAuditLocation) {
+      AppState.setPreAuditLocation(district, "All Branches");
+    }
+    this.render();
+  }
+
+  handlePreAuditBranchChange(branch) {
+    if (typeof AppState !== 'undefined' && AppState.setPreAuditLocation) {
+      const currentDistrict = AppState.getSelectedDistrict ? AppState.getSelectedDistrict() : "All Districts";
+      AppState.setPreAuditLocation(currentDistrict, branch);
+    }
+    this.render();
+  }
+
+  resetPreAuditLocationFilter() {
+    if (typeof AppState !== 'undefined' && AppState.setPreAuditLocation) {
+      AppState.setPreAuditLocation("All Districts", "All Branches");
+    }
+    this.render();
+  }
+
+  showPreAuditTab(tab) {
+    if (typeof AppState !== 'undefined' && AppState.setPreAuditDashboardTab) {
+      AppState.setPreAuditDashboardTab(tab);
+    }
+    this.render();
+  }
+
   init() {
     // Generate initial captcha
     this.generateCaptcha();
+    this.updateLanguageUI();
 
     // Subscribe to state updates
     AppState.subscribe(() => {
+      this.updateLanguageUI();
       this.render();
     });
 
@@ -334,9 +388,9 @@ class AppController {
                 <div class="mb-6 p-4 rounded-xl bg-slate-50 border border-slate-200">
                   <div class="flex items-center justify-between mb-2">
                     <span class="text-xs font-bold text-slate-800 flex items-center gap-1.5 uppercase tracking-wide">
-                      <i class="fa-solid fa-bolt text-amber-500"></i> Quick-Demo 1-Click Login:
+                      <i class="fa-solid fa-bolt text-amber-500"></i> ${UI.t("Quick-Demo 1-Click Login:")}
                     </span>
-                    <span class="text-[10px] text-slate-500">Click any persona to log in instantly:</span>
+                    <span class="text-[10px] text-slate-500">${UI.t("Click any persona to log in instantly:")}</span>
                   </div>
 
                   <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -345,7 +399,7 @@ class AppController {
                         class="p-2 rounded-lg border border-slate-200 bg-white hover:border-blue-500 hover:bg-blue-50/50 text-left transition-all group shadow-2xs">
                         <div class="flex items-center gap-1.5 mb-1">
                           <span class="w-2 h-2 rounded-full ${r.color === 'blue' ? 'bg-blue-600' : (r.color === 'emerald' ? 'bg-emerald-600' : (r.color === 'amber' ? 'bg-amber-600' : (r.color === 'purple' ? 'bg-purple-600' : (r.color === 'indigo' ? 'bg-indigo-600' : 'bg-slate-700'))))}"></span>
-                          <span class="text-[11px] font-bold text-slate-800 group-hover:text-blue-900 truncate">${r.name.split('/')[0]}</span>
+                          <span class="text-[11px] font-bold text-slate-800 group-hover:text-blue-900 truncate">${UI.t(r.name)}</span>
                         </div>
                         <div class="text-[10px] text-slate-400 font-mono truncate">${r.username}</div>
                       </button>
@@ -359,11 +413,11 @@ class AppController {
                   <!-- Field 1: User ID / Employee Code / GSTIN -->
                   <div>
                     <label class="block font-bold text-slate-700 uppercase mb-1">
-                      User ID / Employee Code / Vendor ID <span class="text-rose-500">*</span>
+                      ${UI.t("User ID / Employee Code / Vendor ID")} <span class="text-rose-500">*</span>
                     </label>
                     <div class="relative">
                       <input type="text" id="login-username" required placeholder="e.g. SUP-881, GDN-AHM-01, AUD-HQ-04..." 
-                        value="SUP-881"
+                        value="AUD-HQ-04"
                         class="w-full text-xs pl-9 pr-3 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent font-mono bg-white">
                       <i class="fa-solid fa-user absolute left-3 top-3 text-slate-400"></i>
                     </div>
@@ -373,15 +427,15 @@ class AppController {
                   <div>
                     <div class="flex justify-between items-center mb-1">
                       <label class="block font-bold text-slate-700 uppercase">
-                        Password / ગુપ્ત કોડ <span class="text-rose-500">*</span>
+                        ${UI.t("Password / ગુપ્ત કોડ")} <span class="text-rose-500">*</span>
                       </label>
                       <button type="button" onclick="appController.openForgotPasswordModal()" class="text-[11px] text-blue-700 hover:underline">
-                        Forgot Password?
+                        ${UI.t("Forgot Password?")}
                       </button>
                     </div>
                     <div class="relative">
                       <input type="password" id="login-password" required placeholder="Enter password..." 
-                        value="Vendor@2026"
+                        value="Audit@2026"
                         class="w-full text-xs pl-9 pr-10 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent font-mono bg-white">
                       <i class="fa-solid fa-lock absolute left-3 top-3 text-slate-400"></i>
                       <button type="button" onclick="appController.togglePasswordVisibility()" class="absolute right-3 top-3">
@@ -393,7 +447,7 @@ class AppController {
                   <!-- Field 3: Interactive Alphanumeric Captcha -->
                   <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
                     <label class="block font-bold text-slate-700 uppercase text-[11px]">
-                      Security Captcha Verification <span class="text-rose-500">*</span>
+                      ${UI.t("Security Captcha Verification")} <span class="text-rose-500">*</span>
                     </label>
                     <div class="flex items-center gap-2">
                       <div class="captcha-box px-4 py-2 border border-slate-300 rounded-lg text-lg text-slate-800 tracking-widest font-mono flex items-center justify-center min-w-[120px] shadow-inner">
@@ -403,7 +457,7 @@ class AppController {
                         class="p-2.5 text-slate-600 hover:text-blue-900 bg-white border border-slate-300 hover:bg-slate-100 rounded-lg" title="Reload Captcha">
                         <i class="fa-solid fa-arrow-rotate-right"></i>
                       </button>
-                      <input type="text" id="login-captcha" required maxlength="4" placeholder="Enter Captcha" 
+                      <input type="text" id="login-captcha" required maxlength="4" placeholder="${UI.t("Enter Captcha")}" 
                         value="${this.currentCaptcha}"
                         class="flex-1 text-xs p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 uppercase font-mono tracking-wider font-bold bg-white">
                     </div>
@@ -413,16 +467,16 @@ class AppController {
                   <div class="flex items-center justify-between text-[11px] text-slate-600">
                     <label class="flex items-center gap-1.5 cursor-pointer">
                       <input type="checkbox" id="remember-me-checkbox" checked class="rounded text-blue-600 focus:ring-blue-500">
-                      <span>Remember session on this device</span>
+                      <span>${UI.t("Remember session on this device")}</span>
                     </label>
-                    <span class="text-slate-400">Digital Gujarat SSO</span>
+                    <span class="text-slate-400">${UI.t("Digital Gujarat SSO")}</span>
                   </div>
 
                   <!-- Submit Button -->
                   <button type="submit" 
                     class="w-full py-3 bg-blue-900 hover:bg-blue-800 text-white font-bold text-xs rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2">
                     <i class="fa-solid fa-right-to-bracket"></i>
-                    <span>Sign In to GSCSCL Portal • સાઇન ઇન કરો</span>
+                    <span>${UI.t("Sign In to GSCSCL Portal • સાઇન ઇન કરો")}</span>
                   </button>
                 </form>
               </div>
@@ -466,17 +520,17 @@ class AppController {
     const roleAvatarEl = document.getElementById('current-role-avatar');
     const roleBadgeEl = document.getElementById('current-role-badge');
 
-    if (roleNameEl) roleNameEl.innerText = role.name;
-    if (roleDesigEl) roleDesigEl.innerText = `${role.officer} • ${role.department}`;
+    if (roleNameEl) roleNameEl.innerText = UI.t(role.name);
+    if (roleDesigEl) roleDesigEl.innerText = `${UI.t(role.officer)} • ${UI.t(role.department)}`;
     if (roleAvatarEl) roleAvatarEl.src = role.avatar;
-    if (roleBadgeEl) roleBadgeEl.innerText = role.id.toUpperCase();
+    if (roleBadgeEl) roleBadgeEl.innerText = (role.id === 'pre_audit' ? 'PRE-AUDIT' : role.id.toUpperCase());
 
     // Notifications count
     const unread = AppState.state.notifications.filter(n => !n.read).length;
     const badge = document.getElementById('notif-badge');
     if (badge) {
       if (unread > 0) {
-        badge.innerText = unread;
+        badge.innerText = UI.formatDigits(unread);
         badge.classList.remove('hidden');
       } else {
         badge.classList.add('hidden');
@@ -490,16 +544,16 @@ class AppController {
         const returnedCount = AppState.getSupplierBills().filter(b => b.status === 'Exception Raised' || b.status === 'Returned for Correction').length;
         excBtn.innerHTML = `
           <i class="fa-solid fa-rotate-right"></i>
-          <span>Returned Bills</span>
-          ${returnedCount > 0 ? `<span id="global-exceptions-count" class="px-1.5 py-0.2 bg-amber-600 text-white rounded-full text-[10px]">${returnedCount}</span>` : ''}
+          <span>${UI.t("Returned Bills", "Returned Bills")}</span>
+          ${returnedCount > 0 ? `<span id="global-exceptions-count" class="px-1.5 py-0.2 bg-amber-600 text-white rounded-full text-[10px]">${UI.formatDigits(returnedCount)}</span>` : ''}
         `;
         excBtn.className = "shrink-0 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors shadow-2xs";
       } else {
         const count = AppState.getBills().filter(b => b.status === 'Exception Raised').length;
         excBtn.innerHTML = `
           <i class="fa-solid fa-triangle-exclamation"></i>
-          <span>Exception Hub</span>
-          <span id="global-exceptions-count" class="px-1.5 py-0.2 bg-rose-600 text-white rounded-full text-[10px]">${count}</span>
+          <span>${UI.t("Exception Hub")}</span>
+          <span id="global-exceptions-count" class="px-1.5 py-0.2 bg-rose-600 text-white rounded-full text-[10px]">${UI.formatDigits(count)}</span>
         `;
         excBtn.className = "shrink-0 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors shadow-2xs";
       }
@@ -520,11 +574,14 @@ class AppController {
         { id: "queries", label: "Queries & Remarks", icon: "fa-comments" }
       ];
     } else if (role.id === "godown_manager") {
+      const pendingDeliveries = (AppState.getGodownDeliveries ? AppState.getGodownDeliveries() : [])
+        .filter(d => d.deliveryStatus === "Waiting for Verification" || d.deliveryStatus === "Verification in Progress");
       tabs = [
-        { id: "dashboard", label: "Godown Dashboard", icon: "fa-chart-pie" },
-        { id: "inward_queue", label: "Inward Verification Queue", icon: "fa-warehouse", countBadge: this.getQueueCount('Submitted') },
-        { id: "all_bills", label: "District Stock & Bills", icon: "fa-boxes-stacked" },
-        { id: "exceptions", label: "Discrepancy Log", icon: "fa-triangle-exclamation" }
+        { id: "dashboard", label: "Dashboard", icon: "fa-chart-pie" },
+        { id: "supply_orders", label: "Supply Orders", icon: "fa-clipboard-list" },
+        { id: "inward_deliveries", label: "Deliveries / Check Inward", icon: "fa-truck-ramp-box", countBadge: pendingDeliveries.length },
+        { id: "receipts", label: "Delivery Receipts (ePOD)", icon: "fa-receipt" },
+        { id: "delivery_history", label: "Delivery History", icon: "fa-clock-rotate-left" }
       ];
     } else if (role.id === "pre_audit") {
       tabs = [
@@ -567,10 +624,10 @@ class AppController {
               : 'text-slate-600 hover:text-blue-900 hover:bg-slate-100'
           }">
           <i class="fa-solid ${tab.icon} ${isActive ? 'text-amber-400' : 'text-slate-400'}"></i>
-          <span>${tab.label}</span>
+          <span>${UI.t(tab.label)}</span>
           ${tab.countBadge ? `
             <span class="ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${isActive ? 'bg-amber-400 text-slate-900' : 'bg-blue-100 text-blue-800'}">
-              ${tab.countBadge}
+              ${UI.formatDigits(tab.countBadge)}
             </span>
           ` : ''}
         </button>
@@ -620,15 +677,17 @@ class AppController {
 
       case "godown_manager":
         if (tab === "dashboard") mainContainer.innerHTML = this.renderGodownDashboardView();
-        else if (tab === "inward_queue") mainContainer.innerHTML = this.renderGodownQueueView();
-        else if (tab === "all_bills") mainContainer.innerHTML = this.renderGenericMasterTableView("All Stock Inward & Invoiced Consignments");
+        else if (tab === "supply_orders") mainContainer.innerHTML = this.renderGodownSupplyOrdersView();
+        else if (tab === "inward_deliveries") mainContainer.innerHTML = this.renderGodownDeliveriesView();
+        else if (tab === "receipts") mainContainer.innerHTML = this.renderGodownReceiptsView();
+        else if (tab === "delivery_history") mainContainer.innerHTML = this.renderGodownDeliveryHistoryView();
         else mainContainer.innerHTML = this.renderGodownDashboardView();
         break;
 
       case "pre_audit":
         if (tab === "dashboard") mainContainer.innerHTML = this.renderPreAuditDashboardView();
         else if (tab === "audit_queue") mainContainer.innerHTML = this.renderPreAuditQueueView();
-        else if (tab === "all_bills") mainContainer.innerHTML = this.renderGenericMasterTableView("Pre-Audit Verified Records");
+        else if (tab === "all_bills") mainContainer.innerHTML = this.renderPreAuditAllAuditedCasesView();
         else mainContainer.innerHTML = this.renderPreAuditDashboardView();
         break;
 
@@ -700,6 +759,19 @@ class AppController {
 
   getFilteredBills(customRoleFilter = null) {
     let bills = AppState.getBills();
+    const currentRole = AppState.getCurrentRole() || {};
+
+    // For Pre-Audit Staff, filter by selected district & branch
+    if (currentRole.id === "pre_audit") {
+      const selectedDistrict = AppState.getSelectedDistrict ? AppState.getSelectedDistrict() : "All Districts";
+      const selectedBranch = AppState.getSelectedBranch ? AppState.getSelectedBranch() : "All Branches";
+      if (selectedDistrict && selectedDistrict !== "All Districts") {
+        bills = bills.filter(b => b.district === selectedDistrict);
+      }
+      if (selectedBranch && selectedBranch !== "All Branches") {
+        bills = bills.filter(b => b.branch === selectedBranch || (b.godownName && b.godownName.toLowerCase().includes(selectedBranch.toLowerCase())));
+      }
+    }
 
     if (customRoleFilter) {
       bills = bills.filter(customRoleFilter);
@@ -1309,112 +1381,741 @@ class AppController {
 
   // -------------------------------------------------------------
   // 2. GODOWN MANAGER VIEWS
+    // -------------------------------------------------------------
+  // 2. GODOWN MANAGER VIEWS (Strict Inward Delivery & ePOD Management)
   // -------------------------------------------------------------
   renderGodownDashboardView() {
-    const bills = AppState.getBills();
-    const pendingInward = bills.filter(b => b.status === "Submitted" || b.status === "Under Verification");
-    const verifiedBills = bills.filter(b => b.auditChecklist && b.auditChecklist.weighmentSlipVerified);
-    const exceptions = bills.filter(b => b.status === "Exception Raised" && b.exception.raisedBy && b.exception.raisedBy.includes("Godown"));
+    const role = AppState.getCurrentRole() || { godownName: "GSCSCL Central Godown, Sanand", district: "Ahmedabad" };
+    const godownName = role.godownName || "GSCSCL Central Godown, Sanand";
+    const district = role.district || "Ahmedabad";
+
+    const orders = AppState.getGodownSupplyOrders ? AppState.getGodownSupplyOrders() : [];
+    const deliveries = AppState.getGodownDeliveries ? AppState.getGodownDeliveries() : [];
+    const receipts = AppState.getGodownReceipts ? AppState.getGodownReceipts() : [];
+
+    const pendingDeliveries = deliveries.filter(d => d.deliveryStatus === "Waiting for Verification" || d.deliveryStatus === "Verification in Progress");
+    const confirmedDeliveries = deliveries.filter(d => d.deliveryStatus === "Delivery Confirmed" || d.deliveryStatus === "Receipt Issued");
+    const issueDeliveries = deliveries.filter(d => d.deliveryStatus === "Needs Correction");
 
     return `
       <div class="space-y-6">
+        <!-- Godown Profile Banner -->
         <div class="portal-card bg-gradient-to-r from-amber-900 via-amber-800 to-amber-950 text-white p-6 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-md">
           <div>
             <div class="flex items-center gap-2 mb-1">
-              <span class="px-2.5 py-0.5 rounded text-[11px] font-bold bg-white text-amber-900 uppercase">Godown Clearance Station</span>
-              <span class="text-xs text-amber-200">District: Ahmedabad / Sanand Base</span>
+              <span class="px-2.5 py-0.5 rounded text-[11px] font-bold bg-white text-amber-900 uppercase">Godown Station</span>
+              <span class="text-xs text-amber-200">District: ${district} • Godown: ${godownName}</span>
             </div>
-            <h2 class="text-xl md:text-2xl font-bold">R. K. Patel, Godown In-Charge</h2>
-            <p class="text-xs text-amber-100 mt-1">Verification of physical weighbridge receipts, electronic tare-slips & Agmark laboratory moisture tests</p>
+            <h2 class="text-xl md:text-2xl font-bold">${role.officer || 'R. K. Patel'}, Godown Manager</h2>
+            <p class="text-xs text-amber-100 mt-1">Check incoming physical deliveries, record actual weights and moisture tests, and issue digital delivery receipts (ePOD).</p>
           </div>
-          <button onclick="AppState.setActiveTab('inward_queue')" 
-            class="px-4 py-2.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs rounded-lg shadow-md flex items-center gap-2 self-start md:self-auto">
-            <i class="fa-solid fa-list-check"></i> Process Inward Queue (${pendingInward.length})
-          </button>
+          <div class="flex items-center gap-2 flex-wrap">
+            <button onclick="AppState.setActiveTab('inward_deliveries')" 
+              class="px-4 py-2.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs rounded-lg shadow-md flex items-center gap-2">
+              <i class="fa-solid fa-truck-ramp-box"></i> Check Inward Deliveries (${pendingDeliveries.length})
+            </button>
+            <button onclick="AppState.setActiveTab('supply_orders')" 
+              class="px-3.5 py-2.5 bg-white/10 hover:bg-white/20 text-white font-bold text-xs rounded-lg border border-white/20 flex items-center gap-2">
+              <i class="fa-solid fa-clipboard-list"></i> Supply Orders (${orders.length})
+            </button>
+          </div>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          ${UI.renderKpiCard("Pending Inward Verification", `${pendingInward.length} Bills`, "Waiting for godown clearance", "fa-hourglass-half", "bg-amber-100 text-amber-800")}
-          ${UI.renderKpiCard("Physically Verified", `${verifiedBills.length} Consignments`, "Weighbridge slips matched", "fa-clipboard-check", "bg-emerald-100 text-emerald-800")}
-          ${UI.renderKpiCard("Discrepancies Flagged", `${exceptions.length} Cases`, "Weight / Moisture variances", "fa-triangle-exclamation", "bg-rose-100 text-rose-800")}
-          ${UI.renderKpiCard("Avg Inspection Time", "2.1 Hours", "Well within 24h SLA target", "fa-bolt", "bg-blue-100 text-blue-800")}
+        <!-- 5 Simple Metric KPI Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+          <div onclick="AppState.setActiveTab('supply_orders')" class="cursor-pointer transition-transform hover:scale-[1.02]">
+            ${UI.renderKpiCard("Supply Orders", `${orders.length} Orders`, "Assigned to this godown", "fa-clipboard-list", "bg-blue-100 text-blue-800")}
+          </div>
+          <div onclick="AppState.setActiveTab('inward_deliveries')" class="cursor-pointer transition-transform hover:scale-[1.02]">
+            ${UI.renderKpiCard("Waiting for Verification", `${pendingDeliveries.length} Trucks`, "Awaiting physical check", "fa-hourglass-half", "bg-amber-100 text-amber-800")}
+          </div>
+          <div onclick="AppState.setActiveTab('inward_deliveries')" class="cursor-pointer transition-transform hover:scale-[1.02]">
+            ${UI.renderKpiCard("Completed Deliveries", `${confirmedDeliveries.length} Received`, "Physically confirmed", "fa-circle-check", "bg-emerald-100 text-emerald-800")}
+          </div>
+          <div onclick="AppState.setActiveTab('receipts')" class="cursor-pointer transition-transform hover:scale-[1.02]">
+            ${UI.renderKpiCard("Receipts Issued", `${receipts.length} Receipts`, "Digital ePOD generated", "fa-receipt", "bg-indigo-100 text-indigo-800")}
+          </div>
+          <div onclick="AppState.setActiveTab('inward_deliveries')" class="cursor-pointer transition-transform hover:scale-[1.02]">
+            ${UI.renderKpiCard("Deliveries with Issues", `${issueDeliveries.length} Issues`, "Weight or moisture mismatch", "fa-triangle-exclamation", "bg-rose-100 text-rose-800")}
+          </div>
         </div>
 
+        <!-- Role Scope Notice in Simple English -->
+        <div class="p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3 text-xs text-amber-900">
+          <i class="fa-solid fa-circle-info text-amber-700 text-base mt-0.5"></i>
+          <div>
+            <strong class="font-bold">Godown Manager Scope:</strong> You record physical deliveries arriving at this godown, enter weighbridge slips and moisture tests, and issue official digital receipts (ePOD). Official supplier bill scrutiny, audit deductions, and financial disbursements are performed separately by the Branch Officer and Finance Branch.
+          </div>
+        </div>
+
+        <!-- Recent Deliveries Activity Table -->
         <div class="portal-card p-5">
-          <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
             <div>
-              <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wide">Bills Awaiting Physical & GRN Verification</h3>
-              <p class="text-xs text-slate-500">Cross-examine supplier invoice claims against digitized weighbridge data</p>
+              <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wide">Recent Delivery Activity at ${godownName}</h3>
+              <p class="text-xs text-slate-500">Physical arrivals, weighbridge inspection, and digital receipt status</p>
             </div>
+            <button onclick="AppState.setActiveTab('inward_deliveries')" class="text-xs text-amber-800 hover:text-amber-900 font-bold flex items-center gap-1">
+              View All Deliveries <i class="fa-solid fa-arrow-right"></i>
+            </button>
           </div>
-          ${this.renderBillsTableHTML(pendingInward, false, "godown_action")}
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider text-[11px]">
+                  <th class="p-3">Delivery ID</th>
+                  <th class="p-3">Order Number</th>
+                  <th class="p-3">Supplier Name</th>
+                  <th class="p-3">Commodity</th>
+                  <th class="p-3">Expected / Actual</th>
+                  <th class="p-3">Delivery Date</th>
+                  <th class="p-3">Status</th>
+                  <th class="p-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                ${deliveries.length === 0 ? `
+                  <tr>
+                    <td colspan="8" class="p-6 text-center text-slate-400">No deliveries recorded for this godown yet.</td>
+                  </tr>
+                ` : deliveries.slice(0, 5).map(d => `
+                  <tr class="hover:bg-slate-50/80 transition-colors">
+                    <td class="p-3 font-mono font-bold text-blue-900">${d.deliveryId}</td>
+                    <td class="p-3 font-mono text-slate-700">${d.orderNumber}</td>
+                    <td class="p-3 font-semibold text-slate-800 truncate max-w-[180px]">${d.supplierName}</td>
+                    <td class="p-3 text-slate-700">${d.commodity}</td>
+                    <td class="p-3 font-mono">
+                      <span>${d.expectedQty} ${d.unit}</span>
+                      ${d.actualQtyReceived ? `<span class="text-emerald-700 font-bold block">${d.actualQtyReceived} ${d.unit}</span>` : '<span class="text-slate-400 block">Pending</span>'}
+                    </td>
+                    <td class="p-3 text-slate-600">${UI.formatDigits(d.deliveryDate)}</td>
+                    <td class="p-3">${this.renderDeliveryStatusBadge(d.deliveryStatus)}</td>
+                    <td class="p-3 text-right">
+                      ${this.renderDeliveryActionButtons(d)}
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     `;
   }
 
-  renderGodownQueueView() {
-    const bills = this.getFilteredBills(b => b.status === "Submitted" || b.status === "Under Verification");
+  renderGodownSupplyOrdersView() {
+    const orders = AppState.getGodownSupplyOrders ? AppState.getGodownSupplyOrders() : [];
+    const role = AppState.getCurrentRole() || { godownName: "GSCSCL Central Godown, Sanand" };
 
     return `
       <div class="space-y-4">
-        <div class="flex items-center justify-between">
+        <div class="flex items-center justify-between flex-wrap gap-2">
           <div>
-            <h2 class="text-lg font-bold text-slate-900">Godown Inward Clearance Queue</h2>
-            <p class="text-xs text-slate-500">Verify weight slip, moisture, refraction & certify physical stock acceptance</p>
+            <h2 class="text-lg font-bold text-slate-900">Supply Orders Assigned to This Godown</h2>
+            <p class="text-xs text-slate-500">Official purchase orders for commodities scheduled for delivery at ${role.godownName || 'this godown'}</p>
+          </div>
+          <div class="text-xs text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
+            <i class="fa-solid fa-lock text-slate-400 mr-1"></i> Supply orders are issued by Head Office. Read-only access.
           </div>
         </div>
 
-        ${this.renderFiltersBarHTML()}
-
         <div class="portal-card overflow-hidden">
-          ${this.renderBillsTableHTML(bills, false, "godown_action")}
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider text-[11px]">
+                  <th class="p-3">Order Number</th>
+                  <th class="p-3">Supplier Name</th>
+                  <th class="p-3">Commodity</th>
+                  <th class="p-3">Expected Qty</th>
+                  <th class="p-3">Delivered Qty</th>
+                  <th class="p-3">Remaining</th>
+                  <th class="p-3">Due Date</th>
+                  <th class="p-3">Order Status</th>
+                  <th class="p-3 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                ${orders.length === 0 ? `
+                  <tr>
+                    <td colspan="9" class="p-6 text-center text-slate-400">No supply orders assigned to this godown.</td>
+                  </tr>
+                ` : orders.map(o => `
+                  <tr class="hover:bg-slate-50/80 transition-colors">
+                    <td class="p-3 font-mono font-bold text-blue-900">${o.orderNumber}</td>
+                    <td class="p-3 font-semibold text-slate-800">${o.supplierName}</td>
+                    <td class="p-3 text-slate-700">${o.commodity}</td>
+                    <td class="p-3 font-mono font-bold text-slate-900">${o.expectedQty} ${o.unit}</td>
+                    <td class="p-3 font-mono text-emerald-700 font-bold">${o.deliveredQty || 0} ${o.unit}</td>
+                    <td class="p-3 font-mono text-amber-700 font-bold">${o.remainingQty !== undefined ? o.remainingQty : (o.expectedQty - (o.deliveredQty || 0))} ${o.unit}</td>
+                    <td class="p-3 text-slate-600">${UI.formatDigits(o.deliveryDueDate)}</td>
+                    <td class="p-3">
+                      <span class="px-2 py-0.5 rounded text-[11px] font-bold ${o.orderStatus === 'Completed' ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'}">
+                        ${o.orderStatus}
+                      </span>
+                    </td>
+                    <td class="p-3 text-right">
+                      <button onclick="appController.openSupplyOrderDetailsModal('${o.orderNumber}')" 
+                        class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[11px] font-semibold flex items-center gap-1 ml-auto">
+                        <i class="fa-solid fa-eye"></i> View Order
+                      </button>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     `;
   }
 
+  renderGodownDeliveriesView() {
+    const deliveries = AppState.getGodownDeliveries ? AppState.getGodownDeliveries() : [];
+    const role = AppState.getCurrentRole() || { godownName: "GSCSCL Central Godown, Sanand" };
+
+    return `
+      <div class="space-y-4">
+        <div class="flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <h2 class="text-lg font-bold text-slate-900">Deliveries / Check Inward</h2>
+            <p class="text-xs text-slate-500">Check physical goods received, record weighbridge weights and moisture, and issue delivery receipts (ePOD)</p>
+          </div>
+        </div>
+
+        <!-- Filter bar -->
+        <div class="portal-card p-3.5 flex flex-wrap items-center justify-between gap-3 bg-white">
+          <div class="flex items-center gap-2 flex-wrap">
+            <button onclick="appController.filterGodownDeliveries('all')" id="btn-filter-del-all"
+              class="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-600 text-white shadow-xs">
+              All Deliveries (${deliveries.length})
+            </button>
+            <button onclick="appController.filterGodownDeliveries('waiting')" id="btn-filter-del-waiting"
+              class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700">
+              Waiting for Verification (${deliveries.filter(d => d.deliveryStatus === 'Waiting for Verification' || d.deliveryStatus === 'Verification in Progress').length})
+            </button>
+            <button onclick="appController.filterGodownDeliveries('needs_correction')" id="btn-filter-del-correction"
+              class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700">
+              Needs Correction (${deliveries.filter(d => d.deliveryStatus === 'Needs Correction').length})
+            </button>
+            <button onclick="appController.filterGodownDeliveries('confirmed')" id="btn-filter-del-confirmed"
+              class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700">
+              Delivery Confirmed (${deliveries.filter(d => d.deliveryStatus === 'Delivery Confirmed').length})
+            </button>
+            <button onclick="appController.filterGodownDeliveries('receipt_issued')" id="btn-filter-del-receipt"
+              class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700">
+              Receipt Issued (${deliveries.filter(d => d.deliveryStatus === 'Receipt Issued').length})
+            </button>
+          </div>
+
+          <div class="relative min-w-[200px]">
+            <input type="text" id="delivery-search-input" oninput="appController.handleDeliverySearch(this.value)" 
+              placeholder="Search truck, order or ID..."
+              class="w-full text-xs py-1.5 pl-8 pr-3 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:bg-white">
+            <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-slate-400 text-xs"></i>
+          </div>
+        </div>
+
+        <div class="portal-card overflow-hidden" id="godown-deliveries-table-container">
+          ${this.renderDeliveriesTableHTML(deliveries)}
+        </div>
+      </div>
+    `;
+  }
+
+  renderDeliveriesTableHTML(deliveries) {
+    if (!deliveries || deliveries.length === 0) {
+      return `
+        <div class="p-8 text-center text-slate-400">
+          <i class="fa-solid fa-truck-ramp-box text-3xl mb-2 text-slate-300"></i>
+          <p class="text-sm font-semibold text-slate-600">No deliveries found matching the selected filter.</p>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs border-collapse">
+          <thead>
+            <tr class="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider text-[11px]">
+              <th class="p-3">Delivery ID</th>
+              <th class="p-3">Order & Supplier</th>
+              <th class="p-3">Commodity</th>
+              <th class="p-3">Truck & Driver</th>
+              <th class="p-3">Expected Qty</th>
+              <th class="p-3">Actual Received</th>
+              <th class="p-3">Weight & Moisture</th>
+              <th class="p-3">Status</th>
+              <th class="p-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            ${deliveries.map(d => `
+              <tr class="hover:bg-slate-50/80 transition-colors">
+                <td class="p-3">
+                  <div class="font-mono font-bold text-blue-900">${d.deliveryId}</div>
+                  <div class="text-[10px] text-slate-400">${UI.formatDigits(d.deliveryDate)}</div>
+                </td>
+                <td class="p-3">
+                  <div class="font-mono font-semibold text-slate-800">${d.orderNumber}</div>
+                  <div class="text-[11px] text-slate-500 truncate max-w-[170px]" title="${d.supplierName}">${d.supplierName}</div>
+                </td>
+                <td class="p-3">
+                  <span class="font-semibold text-slate-800">${d.commodity}</span>
+                  <span class="text-[10px] text-slate-400 block font-mono">${d.category}</span>
+                </td>
+                <td class="p-3">
+                  <div class="font-mono font-bold text-slate-900">${d.truckNumber}</div>
+                  <div class="text-[10px] text-slate-500">${d.driverName || 'Driver assigned'}</div>
+                </td>
+                <td class="p-3 font-mono font-bold text-slate-700">
+                  ${d.expectedQty} ${d.unit}
+                </td>
+                <td class="p-3 font-mono">
+                  ${d.actualQtyReceived ? `
+                    <span class="font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                      ${d.actualQtyReceived} ${d.unit}
+                    </span>
+                  ` : `
+                    <span class="text-slate-400 italic">Not recorded</span>
+                  `}
+                </td>
+                <td class="p-3 font-mono text-[11px]">
+                  ${d.netWeightKg ? `
+                    <div>Net: <strong class="text-slate-900">${(d.netWeightKg).toLocaleString('en-IN')} kg</strong></div>
+                    <div>Moisture: <strong class="${(d.moisturePercent > (d.maxAllowedMoisture || 12)) ? 'text-rose-700' : 'text-emerald-700'}">${d.moisturePercent}%</strong></div>
+                  ` : `
+                    <span class="text-slate-400 italic">Slip pending</span>
+                  `}
+                </td>
+                <td class="p-3">
+                  ${this.renderDeliveryStatusBadge(d.deliveryStatus)}
+                  ${d.receiptId ? `
+                    <div class="text-[10px] font-mono text-indigo-700 mt-1">Receipt: ${d.receiptId}</div>
+                  ` : ''}
+                </td>
+                <td class="p-3 text-right">
+                  ${this.renderDeliveryActionButtons(d)}
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  renderDeliveryStatusBadge(status) {
+    let colorClasses = "bg-slate-100 text-slate-800 border-slate-300";
+    let icon = "fa-circle-question";
+
+    switch (status) {
+      case "Waiting for Delivery":
+        colorClasses = "bg-blue-50 text-blue-800 border-blue-200";
+        icon = "fa-truck";
+        break;
+      case "Waiting for Verification":
+        colorClasses = "bg-amber-100 text-amber-900 border-amber-300";
+        icon = "fa-hourglass-half";
+        break;
+      case "Verification in Progress":
+        colorClasses = "bg-sky-100 text-sky-800 border-sky-300";
+        icon = "fa-spinner fa-spin";
+        break;
+      case "Delivery Confirmed":
+        colorClasses = "bg-emerald-100 text-emerald-800 border-emerald-300";
+        icon = "fa-circle-check";
+        break;
+      case "Receipt Issued":
+        colorClasses = "bg-indigo-100 text-indigo-900 border-indigo-300";
+        icon = "fa-receipt";
+        break;
+      case "Needs Correction":
+      case "Clarification Submitted":
+        colorClasses = "bg-rose-100 text-rose-800 border-rose-300";
+        icon = "fa-triangle-exclamation";
+        break;
+    }
+
+    return `
+      <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${colorClasses}">
+        <i class="fa-solid ${icon} text-[10px]"></i> ${UI.t(status)}
+      </span>
+    `;
+  }
+
+  renderDeliveryActionButtons(d) {
+    if (d.deliveryStatus === "Waiting for Verification" || d.deliveryStatus === "Verification in Progress") {
+      return `
+        <div class="flex items-center justify-end gap-1.5">
+          <button onclick="appController.openVerifyDeliveryModal('${d.deliveryId}')" 
+            class="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded text-[11px] font-bold flex items-center gap-1 shadow-2xs">
+            <i class="fa-solid fa-magnifying-glass-check"></i> ${UI.t("Check Delivery")}
+          </button>
+          <button onclick="appController.openClarifyDeliveryModal('${d.deliveryId}')" 
+            class="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded text-[11px] font-semibold"
+            title="${UI.t("Report Delivery Issue")}">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+          </button>
+        </div>
+      `;
+    }
+
+    if (d.deliveryStatus === "Delivery Confirmed") {
+      return `
+        <div class="flex items-center justify-end gap-1.5">
+          <button onclick="appController.handleIssueReceipt('${d.deliveryId}')" 
+            class="px-3 py-1 bg-indigo-700 hover:bg-indigo-800 text-white rounded text-[11px] font-bold flex items-center gap-1 shadow-2xs">
+            <i class="fa-solid fa-receipt"></i> ${UI.t("Issue Delivery Receipt")}
+          </button>
+          <button onclick="appController.openDeliveryDetailsModal('${d.deliveryId}')" 
+            class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[11px] font-semibold">
+            <i class="fa-solid fa-eye"></i>
+          </button>
+        </div>
+      `;
+    }
+
+    if (d.deliveryStatus === "Receipt Issued") {
+      return `
+        <div class="flex items-center justify-end gap-1.5">
+          <button onclick="appController.openReceiptModal('${d.receiptId}')" 
+            class="px-2.5 py-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded text-[11px] font-bold flex items-center gap-1 shadow-2xs">
+            <i class="fa-solid fa-receipt"></i> View Receipt
+          </button>
+          <button onclick="appController.openDeliveryDetailsModal('${d.deliveryId}')" 
+            class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[11px] font-semibold">
+            <i class="fa-solid fa-eye"></i>
+          </button>
+        </div>
+      `;
+    }
+
+    if (d.deliveryStatus === "Needs Correction") {
+      return `
+        <div class="flex items-center justify-end gap-1.5">
+          <button onclick="appController.openDeliveryDetailsModal('${d.deliveryId}')" 
+            class="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded text-[11px] font-bold flex items-center gap-1">
+            <i class="fa-solid fa-triangle-exclamation"></i> View Issue
+          </button>
+          <button onclick="appController.openVerifyDeliveryModal('${d.deliveryId}')" 
+            class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[11px] font-semibold"
+            title="Re-check Delivery">
+            <i class="fa-solid fa-rotate"></i>
+          </button>
+        </div>
+      `;
+    }
+
+    return `
+      <button onclick="appController.openDeliveryDetailsModal('${d.deliveryId}')" 
+        class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[11px] font-semibold">
+        <i class="fa-solid fa-eye"></i> Details
+      </button>
+    `;
+  }
+
+  renderGodownReceiptsView() {
+    const receipts = AppState.getGodownReceipts ? AppState.getGodownReceipts() : [];
+    const role = AppState.getCurrentRole() || { godownName: "GSCSCL Central Godown, Sanand" };
+
+    return `
+      <div class="space-y-4">
+        <div class="flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <h2 class="text-lg font-bold text-slate-900">Digital Delivery Receipts (ePOD)</h2>
+            <p class="text-xs text-slate-500">Official Proof of Delivery receipts issued for physical consignments accepted at ${role.godownName}</p>
+          </div>
+          <div class="text-xs text-indigo-900 bg-indigo-50 border border-indigo-200 px-3 py-1.5 rounded-lg">
+            <i class="fa-solid fa-shield-halved text-indigo-600 mr-1"></i> Receipts are finalized records. Ready for supplier invoice creation.
+          </div>
+        </div>
+
+        <div class="portal-card overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider text-[11px]">
+                  <th class="p-3">Receipt ID (ePOD)</th>
+                  <th class="p-3">Order Number</th>
+                  <th class="p-3">Supplier Name</th>
+                  <th class="p-3">Commodity</th>
+                  <th class="p-3">Confirmed Quantity</th>
+                  <th class="p-3">Delivery Date</th>
+                  <th class="p-3">Weighbridge / Moisture</th>
+                  <th class="p-3">Billing Status</th>
+                  <th class="p-3 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                ${receipts.length === 0 ? `
+                  <tr>
+                    <td colspan="9" class="p-8 text-center text-slate-400">No delivery receipts issued for this godown yet.</td>
+                  </tr>
+                ` : receipts.map(r => `
+                  <tr class="hover:bg-slate-50/80 transition-colors">
+                    <td class="p-3 font-mono font-bold text-indigo-900">${r.grnNumber}</td>
+                    <td class="p-3 font-mono text-slate-700">${r.poNumber}</td>
+                    <td class="p-3 font-semibold text-slate-800">${r.supplierName}</td>
+                    <td class="p-3 text-slate-700">${r.commodity}</td>
+                    <td class="p-3 font-mono font-bold text-emerald-800">
+                      ${r.quantityQuintals} Qtl (${r.bagsCount || 0} Bags)
+                    </td>
+                    <td class="p-3 text-slate-600">${UI.formatDigits(r.inwardDate)}</td>
+                    <td class="p-3 font-mono text-[11px] text-slate-600">
+                      <div>Slip: ${r.weighbridgeSlipNo || 'WB-Auto'}</div>
+                      <div>Moisture: ${r.moisturePercent || 'Standard Passed'}%</div>
+                    </td>
+                    <td class="p-3">
+                      ${r.alreadyBilled ? `
+                        <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-blue-100 text-blue-800">Billed by Supplier</span>
+                      ` : `
+                        <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-100 text-emerald-800">Ready for Billing</span>
+                      `}
+                    </td>
+                    <td class="p-3 text-right">
+                      <button onclick="appController.openReceiptModal('${r.grnNumber}')" 
+                        class="px-2.5 py-1 bg-indigo-700 hover:bg-indigo-800 text-white rounded text-[11px] font-bold flex items-center gap-1 ml-auto shadow-2xs">
+                        <i class="fa-solid fa-receipt"></i> Open Receipt
+                      </button>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  renderGodownDeliveryHistoryView() {
+    const deliveries = AppState.getGodownDeliveries ? AppState.getGodownDeliveries() : [];
+    const role = AppState.getCurrentRole() || { godownName: "GSCSCL Central Godown, Sanand" };
+
+    return `
+      <div class="space-y-4">
+        <div class="flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <h2 class="text-lg font-bold text-slate-900">Delivery History</h2>
+            <p class="text-xs text-slate-500">Complete historical log of all physical deliveries and weighbridge records for ${role.godownName}</p>
+          </div>
+          <div class="text-xs text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
+            <i class="fa-solid fa-file-shield text-slate-400 mr-1"></i> Finalized delivery records are permanent and read-only.
+          </div>
+        </div>
+
+        <div class="portal-card overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider text-[11px]">
+                  <th class="p-3">Delivery ID</th>
+                  <th class="p-3">Delivery Date</th>
+                  <th class="p-3">Order Number</th>
+                  <th class="p-3">Supplier Name</th>
+                  <th class="p-3">Commodity</th>
+                  <th class="p-3">Received Qty</th>
+                  <th class="p-3">Net Weight</th>
+                  <th class="p-3">Moisture</th>
+                  <th class="p-3">Verified By</th>
+                  <th class="p-3">Status</th>
+                  <th class="p-3 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                ${deliveries.length === 0 ? `
+                  <tr>
+                    <td colspan="11" class="p-8 text-center text-slate-400">No delivery history records found.</td>
+                  </tr>
+                ` : deliveries.map(d => `
+                  <tr class="hover:bg-slate-50/80 transition-colors">
+                    <td class="p-3 font-mono font-bold text-blue-900">${d.deliveryId}</td>
+                    <td class="p-3 text-slate-600">${UI.formatDigits(d.deliveryDate)}</td>
+                    <td class="p-3 font-mono text-slate-700">${d.orderNumber}</td>
+                    <td class="p-3 font-semibold text-slate-800 truncate max-w-[170px]">${d.supplierName}</td>
+                    <td class="p-3 text-slate-700">${d.commodity}</td>
+                    <td class="p-3 font-mono font-bold text-slate-800">
+                      ${d.actualQtyReceived ? `${d.actualQtyReceived} ${d.unit}` : '<span class="text-slate-400">-</span>'}
+                    </td>
+                    <td class="p-3 font-mono text-slate-700">
+                      ${d.netWeightKg ? `${(d.netWeightKg).toLocaleString('en-IN')} kg` : '<span class="text-slate-400">-</span>'}
+                    </td>
+                    <td class="p-3 font-mono text-slate-700">
+                      ${d.moisturePercent ? `${d.moisturePercent}%` : '<span class="text-slate-400">-</span>'}
+                    </td>
+                    <td class="p-3 text-slate-600 truncate max-w-[140px]">${d.verifiedBy || '<span class="text-slate-400">Pending</span>'}</td>
+                    <td class="p-3">${this.renderDeliveryStatusBadge(d.deliveryStatus)}</td>
+                    <td class="p-3 text-right">
+                      <button onclick="appController.openDeliveryDetailsModal('${d.deliveryId}')" 
+                        class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[11px] font-semibold flex items-center gap-1 ml-auto">
+                        <i class="fa-solid fa-eye"></i> View Record
+                      </button>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+
   // -------------------------------------------------------------
-  // 3. BRANCH / PRE-AUDIT VIEWS
+  // 3. PRE-AUDIT STAFF VIEWS & CLEARANCE TRACKER
   // -------------------------------------------------------------
+  renderPreAuditLocationBar(selectedDistrict, selectedBranch, branchesForDistrict) {
+    return `
+      <div class="portal-card p-4 bg-white border border-slate-200 rounded-xl shadow-2xs mb-4">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-lg bg-teal-50 border border-teal-200 text-teal-800 flex items-center justify-center font-bold">
+              <i class="fa-solid fa-map-location-dot"></i>
+            </div>
+            <div>
+              <span class="text-[11px] font-bold text-teal-900 uppercase tracking-wide block">${UI.t("Location Filter / Branch Scope")}</span>
+              <p class="text-xs text-slate-500">${UI.t("Select District & Operating Branch")}</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-3 flex-wrap">
+            <div class="flex items-center gap-2">
+              <label class="text-xs font-bold text-slate-700">${UI.t("District:")}</label>
+              <select id="preaudit-district-select" onchange="appController.handlePreAuditDistrictChange(this.value)" 
+                class="text-xs py-2 px-3 bg-slate-50 border border-slate-300 rounded-lg font-semibold text-slate-800 focus:ring-2 focus:ring-teal-600 focus:bg-white shadow-2xs">
+                ${["All Districts", ...GSCSCL_DATA.districts].map(d => `
+                  <option value="${d}" ${selectedDistrict === d ? 'selected' : ''}>${UI.t(d)}</option>
+                `).join('')}
+              </select>
+            </div>
+            <div class="flex items-center gap-2">
+              <label class="text-xs font-bold text-slate-700">${UI.t("Branch / Godown:")}</label>
+              <select id="preaudit-branch-select" onchange="appController.handlePreAuditBranchChange(this.value)" 
+                class="text-xs py-2 px-3 bg-slate-50 border border-slate-300 rounded-lg font-semibold text-slate-800 focus:ring-2 focus:ring-teal-600 focus:bg-white shadow-2xs">
+                ${branchesForDistrict.map(b => `
+                  <option value="${b}" ${selectedBranch === b ? 'selected' : ''}>${UI.t(b)}</option>
+                `).join('')}
+              </select>
+            </div>
+            ${(selectedDistrict !== "All Districts" || selectedBranch !== "All Branches") ? `
+              <button onclick="appController.resetPreAuditLocationFilter()" 
+                class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors">
+                <i class="fa-solid fa-rotate-left"></i> ${UI.t("Reset")}
+              </button>
+            ` : ''}
+          </div>
+        </div>
+        ${(selectedDistrict !== "All Districts" || selectedBranch !== "All Branches") ? `
+          <div class="mt-2.5 pt-2 border-t border-slate-100 text-[11px] text-teal-800 font-medium flex items-center gap-1.5">
+            <i class="fa-solid fa-filter text-teal-600"></i>
+            <span>${UI.t("Active Filter:")}</span>
+            <strong class="bg-teal-50 px-2 py-0.5 rounded border border-teal-200">${selectedDistrict} ${selectedBranch !== 'All Branches' ? '➔ ' + selectedBranch : ''}</strong>
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }
+
   renderPreAuditDashboardView() {
-    const bills = AppState.getBills();
+    let bills = AppState.getBills();
+    const selectedDistrict = AppState.getSelectedDistrict ? AppState.getSelectedDistrict() : "All Districts";
+    const selectedBranch = AppState.getSelectedBranch ? AppState.getSelectedBranch() : "All Branches";
+
+    if (selectedDistrict && selectedDistrict !== "All Districts") {
+      bills = bills.filter(b => b.district === selectedDistrict);
+    }
+    if (selectedBranch && selectedBranch !== "All Branches") {
+      bills = bills.filter(b => b.branch === selectedBranch || (b.godownName && b.godownName.toLowerCase().includes(selectedBranch.toLowerCase())));
+    }
+
     const pendingAudit = bills.filter(b => b.status === "Pre-Audit");
     const totalAuditValue = pendingAudit.reduce((acc, b) => acc + b.grossAmount, 0);
     const auditedBills = bills.filter(b => b.status === "Approval Pending" || b.status === "Sent to Finance" || b.status === "Payment Processed");
 
+    const currentActivePreAuditTab = AppState.getPreAuditDashboardTab ? AppState.getPreAuditDashboardTab() : "pending";
+    const branchesForDistrict = GSCSCL_DATA.districtBranches && GSCSCL_DATA.districtBranches[selectedDistrict] 
+      ? GSCSCL_DATA.districtBranches[selectedDistrict] 
+      : ["All Branches"];
+
     return `
       <div class="space-y-6">
+        <!-- Officer Welcome Banner -->
         <div class="portal-card bg-gradient-to-r from-teal-900 via-teal-800 to-emerald-950 text-white p-6 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-md">
           <div>
             <div class="flex items-center gap-2 mb-1">
-              <span class="px-2.5 py-0.5 rounded text-[11px] font-bold bg-teal-300 text-teal-950 uppercase">Pre-Audit Branch</span>
-              <span class="text-xs text-teal-200">Gandhinagar Head Office</span>
+              <span class="px-2.5 py-0.5 rounded text-[11px] font-bold bg-teal-300 text-teal-950 uppercase">${UI.t("Pre-Audit Staff")}</span>
+              <span class="text-xs text-teal-200">${UI.t("Pre-Audit Scrutiny Cell, Gandhinagar Head Office")}</span>
             </div>
-            <h2 class="text-xl md:text-2xl font-bold">Hasmukhbhai Shah, Senior Pre-Auditor</h2>
-            <p class="text-xs text-teal-100 mt-1">3-Way matching verification (PO vs GRN vs Invoice), statutory tax deduction calculations (TDS 194Q & GST-TDS)</p>
+            <h2 class="text-xl md:text-2xl font-bold">${UI.t("Senior Accounts Officer & Pre-Auditor")} - Hasmukhbhai Shah</h2>
+            <p class="text-xs text-teal-100 mt-1">${UI.t("Conduct digital 3-way match, review noting sheet & compute statutory deductions")}</p>
           </div>
           <button onclick="AppState.setActiveTab('audit_queue')" 
-            class="px-4 py-2.5 bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-bold text-xs rounded-lg shadow-md flex items-center gap-2 self-start md:self-auto">
-            <i class="fa-solid fa-clipboard-check"></i> Audit Work Queue (${pendingAudit.length})
+            class="px-4 py-2.5 bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-bold text-xs rounded-lg shadow-md flex items-center gap-2 self-start md:self-auto transition-all">
+            <i class="fa-solid fa-clipboard-check"></i> 
+            <span>${UI.t("Pre-Audit Work Queue")} (${UI.formatNumber(pendingAudit.length)})</span>
           </button>
         </div>
 
+        <!-- District & Branch Selection Dropdown Strip -->
+        ${this.renderPreAuditLocationBar(selectedDistrict, selectedBranch, branchesForDistrict)}
+
+        <!-- 4 Metric KPI Cards (Clickable for instant filtering) -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          ${UI.renderKpiCard("Pre-Audit Pending", `${pendingAudit.length} Bills`, "Inward verified cases", "fa-clock", "bg-teal-100 text-teal-800")}
+          ${UI.renderKpiCard("Pre-Audit Pending", `${UI.formatNumber(pendingAudit.length)} ${UI.t("Bills", "Bills")}`, "Click to open pending bills queue", "fa-clock", "bg-teal-100 text-teal-800", "", "", "appController.showPreAuditTab('pending')")}
           ${UI.renderKpiCard("Pending Audit Value", UI.formatINR(totalAuditValue), "Total value undergoing scrutiny", "fa-scale-balanced", "bg-blue-100 text-blue-800")}
-          ${UI.renderKpiCard("Audit Cleared This Month", `${auditedBills.length} Bills`, "Passed to GM for sanction", "fa-shield-check", "bg-emerald-100 text-emerald-800")}
-          ${UI.renderKpiCard("Statutory Tax Compliance", "100%", "Sec 194Q & GST TDS verified", "fa-percent", "bg-purple-100 text-purple-800")}
+          ${UI.renderKpiCard("Audit Cleared This Month", `${UI.formatNumber(auditedBills.length)} ${UI.t("Bills", "Bills")}`, "Click to view cleared bills & history", "fa-circle-check", "bg-emerald-100 text-emerald-800", "", "", "appController.showPreAuditTab('cleared')")}
+          ${UI.renderKpiCard("Statutory Tax Compliance", UI.formatDigits("100%"), "Sec 194Q & GST TDS verified", "fa-percent", "bg-purple-100 text-purple-800")}
         </div>
 
+        <!-- Interactive Scrutiny & Clearance Section -->
         <div class="portal-card p-5">
-          <div class="flex items-center justify-between mb-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-200 gap-3">
             <div>
-              <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wide">Actionable Pre-Audit Scrutiny Queue</h3>
-              <p class="text-xs text-slate-500">Conduct digital 3-way match, review noting sheet & compute statutory deductions</p>
+              <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wide">
+                ${currentActivePreAuditTab === 'cleared' ? UI.t("Audit Cleared Bills (This Month)") : UI.t("Bills Needing Pre-Audit")}
+              </h3>
+              <p class="text-xs text-slate-500">
+                ${currentActivePreAuditTab === 'cleared' 
+                  ? UI.t("Track full clearance audit trail, statutory tax deductions, and approval noting history")
+                  : UI.t("Conduct digital 3-way match, review noting sheet & compute statutory deductions")
+                }
+              </p>
+            </div>
+            
+            <!-- View Selector Switcher -->
+            <div class="inline-flex rounded-lg p-1 bg-slate-100 border border-slate-200 self-start sm:self-auto shadow-2xs">
+              <button onclick="appController.showPreAuditTab('pending')" 
+                class="px-3.5 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  currentActivePreAuditTab === 'pending' ? 'bg-teal-800 text-white shadow-xs' : 'text-slate-600 hover:text-teal-900'
+                }">
+                <i class="fa-solid fa-clock"></i>
+                <span>${UI.t("Bills Needing Pre-Audit")}</span>
+                <span class="px-1.5 py-0.2 rounded-full text-[10px] ${currentActivePreAuditTab === 'pending' ? 'bg-teal-700 text-white' : 'bg-slate-200 text-slate-700'}">
+                  ${UI.formatNumber(pendingAudit.length)}
+                </span>
+              </button>
+
+              <button onclick="appController.showPreAuditTab('cleared')" 
+                class="px-3.5 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  currentActivePreAuditTab === 'cleared' ? 'bg-emerald-800 text-white shadow-xs' : 'text-slate-600 hover:text-emerald-900'
+                }">
+                <i class="fa-solid fa-circle-check"></i>
+                <span>${UI.t("Audit Cleared Bills (This Month)")}</span>
+                <span class="px-1.5 py-0.2 rounded-full text-[10px] ${currentActivePreAuditTab === 'cleared' ? 'bg-emerald-700 text-white' : 'bg-slate-200 text-slate-700'}">
+                  ${UI.formatNumber(auditedBills.length)}
+                </span>
+              </button>
             </div>
           </div>
-          ${this.renderBillsTableHTML(pendingAudit, false, "preaudit_action")}
+
+          <div class="mt-4">
+            ${currentActivePreAuditTab === 'cleared' 
+              ? this.renderAuditClearedBillsTableHTML(auditedBills) 
+              : this.renderBillsTableHTML(pendingAudit, false, "preaudit_action")
+            }
+          </div>
         </div>
       </div>
     `;
@@ -1422,15 +2123,23 @@ class AppController {
 
   renderPreAuditQueueView() {
     const bills = this.getFilteredBills(b => b.status === "Pre-Audit");
+    const selectedDistrict = AppState.getSelectedDistrict ? AppState.getSelectedDistrict() : "All Districts";
+    const selectedBranch = AppState.getSelectedBranch ? AppState.getSelectedBranch() : "All Branches";
+    const branchesForDistrict = GSCSCL_DATA.districtBranches && GSCSCL_DATA.districtBranches[selectedDistrict] 
+      ? GSCSCL_DATA.districtBranches[selectedDistrict] 
+      : ["All Branches"];
 
     return `
       <div class="space-y-4">
         <div class="flex items-center justify-between">
           <div>
-            <h2 class="text-lg font-bold text-slate-900">Pre-Audit Verification Queue</h2>
-            <p class="text-xs text-slate-500">Examine invoice accuracy, verify test compliance and forward to General Manager</p>
+            <h2 class="text-lg font-bold text-slate-900">${UI.t("Pre-Audit Work Queue")}</h2>
+            <p class="text-xs text-slate-500">${UI.t("Examine invoice accuracy, verify test compliance and forward to General Manager")}</p>
           </div>
         </div>
+
+        <!-- District & Branch Selection Dropdown Strip -->
+        ${this.renderPreAuditLocationBar(selectedDistrict, selectedBranch, branchesForDistrict)}
 
         ${this.renderFiltersBarHTML()}
 
@@ -1439,6 +2148,321 @@ class AppController {
         </div>
       </div>
     `;
+  }
+
+  renderPreAuditAllAuditedCasesView() {
+    const auditedBills = this.getFilteredBills(b => b.status === "Approval Pending" || b.status === "Sent to Finance" || b.status === "Payment Processed");
+    const selectedDistrict = AppState.getSelectedDistrict ? AppState.getSelectedDistrict() : "All Districts";
+    const selectedBranch = AppState.getSelectedBranch ? AppState.getSelectedBranch() : "All Branches";
+    const branchesForDistrict = GSCSCL_DATA.districtBranches && GSCSCL_DATA.districtBranches[selectedDistrict] 
+      ? GSCSCL_DATA.districtBranches[selectedDistrict] 
+      : ["All Branches"];
+
+    return `
+      <div class="space-y-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-lg font-bold text-slate-900">${UI.t("All Audited Cases")}</h2>
+            <p class="text-xs text-slate-500">${UI.t("Track full clearance audit trail, statutory tax deductions, and approval noting history")}</p>
+          </div>
+        </div>
+
+        <!-- District & Branch Selection Dropdown Strip -->
+        ${this.renderPreAuditLocationBar(selectedDistrict, selectedBranch, branchesForDistrict)}
+
+        ${this.renderFiltersBarHTML()}
+
+        <div class="portal-card overflow-hidden">
+          ${this.renderAuditClearedBillsTableHTML(auditedBills)}
+        </div>
+      </div>
+    `;
+  }
+
+  renderAuditClearedBillsTableHTML(bills) {
+    if (bills.length === 0) {
+      return `
+        <div class="p-12 text-center text-slate-400">
+          <i class="fa-solid fa-circle-check text-4xl mb-3 text-emerald-600"></i>
+          <h4 class="text-sm font-bold text-slate-700">${UI.t("No Matching Bills Found")}</h4>
+          <p class="text-xs text-slate-500 mt-1">${UI.t("Try modifying your search query or stage filters.")}</p>
+          <button onclick="appController.resetPreAuditLocationFilter()" class="mt-3 px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded">
+            ${UI.t("Reset Filters")}
+          </button>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="overflow-x-auto">
+        <table class="w-full text-xs text-left">
+          <thead class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+            <tr>
+              <th class="p-3">${UI.t("Bill ID & Ref")}</th>
+              <th class="p-3">${UI.t("Supplier & District")}</th>
+              <th class="p-3">${UI.t("Commodity & GRN")}</th>
+              <th class="p-3 text-right">${UI.t("Quantity")}</th>
+              <th class="p-3 text-right">${UI.t("Net Amount")}</th>
+              <th class="p-3">${UI.t("Clearance Date")}</th>
+              <th class="p-3 text-center">${UI.t("Lifecycle Status")}</th>
+              <th class="p-3 text-right">${UI.t("Actions")}</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 bg-white">
+            ${bills.map(b => {
+              const auditNote = (b.notingSheet || []).find(n => n.action && (n.action.includes('Pre-Audit') || n.action.includes('Scrutiny') || n.remarks.includes('Pre-Audit'))) || (b.notingSheet && b.notingSheet[b.notingSheet.length - 1]);
+              const clearedDate = b.auditClearedDate || (auditNote ? auditNote.timestamp.split(' ')[0] : b.submissionDate);
+              return `
+                <tr class="hover:bg-slate-50 transition-colors group cursor-pointer" onclick="appController.openAuditHistoryModal('${b.id}')">
+                  <td class="p-3">
+                    <button type="button" onclick="event.stopPropagation(); appController.openAuditHistoryModal('${b.id}')" 
+                      class="font-mono font-bold text-teal-900 hover:text-teal-700 hover:underline flex items-center gap-1.5 text-left">
+                      ${b.id}
+                    </button>
+                    <div class="text-[11px] text-slate-500 font-mono">Inv: ${b.invoiceNumber}</div>
+                    <div class="text-[10px] text-slate-400">${UI.formatDigits(b.submissionDate)}</div>
+                  </td>
+
+                  <td class="p-3">
+                    <div class="font-semibold text-slate-900 truncate max-w-[200px]" title="${b.supplierName}">
+                      ${b.supplierName}
+                    </div>
+                    <div class="text-[11px] text-slate-500 flex items-center gap-1">
+                      <i class="fa-solid fa-location-dot text-slate-400"></i> ${b.district} ${b.branch ? '• ' + b.branch : ''}
+                    </div>
+                  </td>
+
+                  <td class="p-3">
+                    <div class="flex items-center gap-1.5 mb-0.5">
+                      ${UI.renderCategoryBadge(b.category)}
+                      <span class="font-medium text-slate-800 truncate max-w-[180px]" title="${b.commodity}">${b.commodity}</span>
+                    </div>
+                    <div class="text-[11px] font-mono text-emerald-700">${b.grnNumber}</div>
+                  </td>
+
+                  <td class="p-3 text-right">
+                    <div class="font-mono font-bold text-slate-900">${UI.formatNumber(b.billedQty)} ${UI.t(b.unit)}</div>
+                    <div class="text-[11px] text-slate-500 font-mono">@ ₹${UI.formatNumber(b.ratePerUnit.toFixed(0))}</div>
+                  </td>
+
+                  <td class="p-3 text-right">
+                    <div class="font-mono font-bold text-slate-900 text-[13px]">₹${UI.formatNumber(b.netPayable)}</div>
+                    <div class="text-[10px] text-slate-400 line-through">Gross: ₹${UI.formatNumber(b.grossAmount)}</div>
+                  </td>
+
+                  <td class="p-3">
+                    <div class="text-slate-800 font-semibold flex items-center gap-1">
+                      <i class="fa-solid fa-calendar-check text-emerald-600"></i>
+                      <span>${UI.formatDigits(clearedDate)}</span>
+                    </div>
+                    <div class="text-[10px] text-teal-700 font-medium">Hasmukhbhai Shah</div>
+                  </td>
+
+                  <td class="p-3 text-center">
+                    ${UI.renderStatusBadge(b.status)}
+                    <div class="text-[10px] text-slate-400 mt-1">${UI.t(b.currentStage)}</div>
+                  </td>
+
+                  <td class="p-3 text-right" onclick="event.stopPropagation()">
+                    <div class="flex items-center justify-end gap-1.5">
+                      <button onclick="appController.openAuditHistoryModal('${b.id}')" 
+                        class="px-2.5 py-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded text-[11px] font-bold flex items-center gap-1 shadow-sm transition-colors"
+                        title="${UI.t("View Audit History")}">
+                        <i class="fa-solid fa-timeline"></i>
+                        <span>${UI.t("Audit History")}</span>
+                      </button>
+                      <button onclick="appController.openBillDetailsModal('${b.id}')" 
+                        class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[11px] font-semibold flex items-center gap-1"
+                        title="${UI.t("Details")}">
+                        <i class="fa-solid fa-eye"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  openAuditHistoryModal(billId) {
+    const bill = AppState.getBillById(billId);
+    if (!bill) return;
+
+    const html = `
+      <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+        <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full border border-slate-200 overflow-hidden my-6 animate-in fade-in zoom-in-95 duration-150">
+          
+          <!-- Header -->
+          <div class="bg-gradient-to-r from-teal-900 to-slate-900 text-white p-5 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-lg bg-emerald-500 text-slate-950 flex items-center justify-center text-lg font-bold shadow">
+                <i class="fa-solid fa-clipboard-check"></i>
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <h3 class="text-base font-bold font-mono">${bill.id}</h3>
+                  ${UI.renderStatusBadge(bill.status)}
+                  <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-400 text-slate-950 uppercase tracking-wide">
+                    ${UI.t("Audit Cleared")}
+                  </span>
+                </div>
+                <p class="text-xs text-teal-100 mt-0.5">
+                  ${bill.supplierName} • ${bill.district} ${bill.branch ? '(' + bill.branch + ')' : ''} • GSTIN: ${bill.supplierGstin}
+                </p>
+              </div>
+            </div>
+            <button onclick="appController.closeModal()" class="text-slate-300 hover:text-white text-lg p-1">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+
+          <!-- Body -->
+          <div class="p-6 space-y-6 max-h-[75vh] overflow-y-auto">
+            
+            <!-- Audit Milestones Stepper -->
+            <div class="portal-card p-4 bg-slate-50 border-slate-200">
+              <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wide mb-3 flex items-center gap-2">
+                <i class="fa-solid fa-timeline text-teal-700"></i>
+                ${UI.t("Audit History Trail & Milestones")}
+              </h4>
+              <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
+                
+                <div class="bg-white p-3 rounded-lg border-l-4 border-l-blue-600 border border-slate-200 shadow-2xs">
+                  <span class="text-[10px] font-bold text-blue-700 uppercase block">${UI.t("Initial Bill Submission")}</span>
+                  <div class="font-bold text-slate-900 mt-1">${UI.formatDigits(bill.submissionDate)}</div>
+                  <div class="text-[11px] text-slate-500 font-mono mt-0.5">${bill.invoiceNumber}</div>
+                  <div class="text-[10px] text-emerald-600 font-semibold mt-1">
+                    <i class="fa-solid fa-check"></i> Gross: ₹${UI.formatNumber(bill.grossAmount)}
+                  </div>
+                </div>
+
+                <div class="bg-white p-3 rounded-lg border-l-4 border-l-amber-500 border border-slate-200 shadow-2xs">
+                  <span class="text-[10px] font-bold text-amber-700 uppercase block">${UI.t("Physical Stock Acceptance")}</span>
+                  <div class="font-bold text-slate-900 mt-1">${bill.grnNumber}</div>
+                  <div class="text-[11px] text-slate-500 mt-0.5">${UI.formatNumber(bill.receivedQty)} ${UI.t(bill.unit)}</div>
+                  <div class="text-[10px] text-emerald-600 font-semibold mt-1">
+                    <i class="fa-solid fa-check"></i> Weighment Verified
+                  </div>
+                </div>
+
+                <div class="bg-white p-3 rounded-lg border-l-4 border-l-emerald-600 border border-slate-200 shadow-2xs">
+                  <span class="text-[10px] font-bold text-emerald-700 uppercase block">${UI.t("Pre-Audit Scrutiny Clearance")}</span>
+                  <div class="font-bold text-emerald-900 mt-1">${UI.formatDigits(bill.auditClearedDate || bill.submissionDate)}</div>
+                  <div class="text-[11px] text-slate-600 mt-0.5">3-Way Match Passed</div>
+                  <div class="text-[10px] text-emerald-700 font-semibold mt-1">
+                    <i class="fa-solid fa-seal-check"></i> Passed to GM
+                  </div>
+                </div>
+
+                <div class="bg-white p-3 rounded-lg border-l-4 ${bill.status === 'Payment Processed' ? 'border-l-emerald-600' : 'border-l-purple-600'} border border-slate-200 shadow-2xs">
+                  <span class="text-[10px] font-bold ${bill.status === 'Payment Processed' ? 'text-emerald-700' : 'text-purple-700'} uppercase block">
+                    ${bill.status === 'Payment Processed' ? UI.t("Treasury Disbursement (IFMS)") : UI.t("Competent Authority Sanction")}
+                  </span>
+                  <div class="font-bold text-slate-900 mt-1">${UI.t(bill.status)}</div>
+                  <div class="text-[11px] text-slate-500 mt-0.5">Net: ₹${UI.formatNumber(bill.netPayable)}</div>
+                  <div class="text-[10px] text-slate-600 font-semibold mt-1">
+                    ${bill.status === 'Payment Processed' ? 'UTR Generated' : 'Sanction Pending'}
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- Pre-Audit Settlement Breakdown -->
+            <div class="portal-card p-4">
+              <div class="flex items-center justify-between mb-3 border-b border-slate-100 pb-2">
+                <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wide flex items-center gap-2">
+                  <i class="fa-solid fa-calculator text-teal-700"></i>
+                  ${UI.t("Financial Settlement & Deduction Schedule")}
+                </h4>
+                <span class="text-xs text-slate-500">
+                  ${UI.t("Gross:")} <strong class="text-slate-900 font-mono">₹${UI.formatNumber(bill.grossAmount)}</strong>
+                </span>
+              </div>
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                <div class="p-2.5 bg-slate-50 rounded border border-slate-200">
+                  <span class="text-[11px] text-slate-500 block">${UI.t("IT TDS 194Q (0.1%):")}</span>
+                  <span class="font-mono font-bold text-rose-700">₹${UI.formatNumber(bill.deductions.tds194Q || 0)}</span>
+                </div>
+                <div class="p-2.5 bg-slate-50 rounded border border-slate-200">
+                  <span class="text-[11px] text-slate-500 block">${UI.t("GST TDS (2.0%):")}</span>
+                  <span class="font-mono font-bold text-rose-700">₹${UI.formatNumber(bill.deductions.gstTds || 0)}</span>
+                </div>
+                <div class="p-2.5 bg-slate-50 rounded border border-slate-200">
+                  <span class="text-[11px] text-slate-500 block">${UI.t("Refraction / Cuts:")}</span>
+                  <span class="font-mono font-bold text-rose-700">₹${UI.formatNumber(bill.deductions.refractionCut || 0)}</span>
+                </div>
+                <div class="p-2.5 bg-emerald-50 rounded border border-emerald-200">
+                  <span class="text-[11px] text-emerald-800 block font-bold">${UI.t("Net Payable:")}</span>
+                  <span class="font-mono font-bold text-emerald-900 text-sm">₹${UI.formatNumber(bill.netPayable)}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Mandatory GSCSCL Audit Verification Checklist -->
+            <div class="portal-card p-4">
+              <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wide mb-3 flex items-center gap-2">
+                <i class="fa-solid fa-list-check text-blue-700"></i>
+                ${UI.t("Mandatory GSCSCL Audit Verification Checklist")}
+              </h4>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                <div class="flex items-center gap-2 p-2 rounded bg-emerald-50/70 border border-emerald-200 text-emerald-950 font-medium">
+                  <i class="fa-solid fa-circle-check text-emerald-600 text-sm"></i>
+                  <span>${UI.t("1. Weighbridge Gross & Tare Receipts Reconciled")}</span>
+                </div>
+                <div class="flex items-center gap-2 p-2 rounded bg-emerald-50/70 border border-emerald-200 text-emerald-950 font-medium">
+                  <i class="fa-solid fa-circle-check text-emerald-600 text-sm"></i>
+                  <span>${UI.t("2. Agmark / FSSAI Lab Quality Report Compliant")}</span>
+                </div>
+                <div class="flex items-center gap-2 p-2 rounded bg-emerald-50/70 border border-emerald-200 text-emerald-950 font-medium">
+                  <i class="fa-solid fa-circle-check text-emerald-600 text-sm"></i>
+                  <span>${UI.t("3. Active GSTIN & e-Way Bill Clearance Confirmed")}</span>
+                </div>
+                <div class="flex items-center gap-2 p-2 rounded bg-emerald-50/70 border border-emerald-200 text-emerald-950 font-medium">
+                  <i class="fa-solid fa-circle-check text-emerald-600 text-sm"></i>
+                  <span>${UI.t("4. Statutory Deductions (TDS 194Q & GST TDS 2%) Verified")}</span>
+                </div>
+                <div class="flex items-center gap-2 p-2 rounded bg-emerald-50/70 border border-emerald-200 text-emerald-950 font-medium">
+                  <i class="fa-solid fa-circle-check text-emerald-600 text-sm"></i>
+                  <span>${UI.t("5. No Dual Claim Certificate Endorsed by Godown")}</span>
+                </div>
+                <div class="flex items-center gap-2 p-2 rounded bg-emerald-50/70 border border-emerald-200 text-emerald-950 font-medium">
+                  <i class="fa-solid fa-circle-check text-emerald-600 text-sm"></i>
+                  <span>${UI.t("6. Sanction Order & Budget Provision Allocated")}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Complete Noting Sheet Thread -->
+            ${UI.renderNotingSheet(bill.notingSheet, false, bill.id)}
+
+          </div>
+
+          <!-- Footer -->
+          <div class="bg-slate-50 p-4 border-t border-slate-200 flex items-center justify-between">
+            <span class="text-xs text-slate-500">
+              <i class="fa-solid fa-shield-halved text-emerald-600"></i> ${UI.t("Certified Audit Record • GSCSCL Pre-Audit Wing")}
+            </span>
+            <div class="flex items-center gap-2">
+              <button onclick="appController.openBillDetailsModal('${bill.id}')" 
+                class="px-3.5 py-2 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-lg border border-slate-300 flex items-center gap-1.5 transition-colors">
+                <i class="fa-solid fa-file-lines"></i> ${UI.t("Details")}
+              </button>
+              <button onclick="appController.closeModal()" 
+                class="px-4 py-2 bg-teal-800 hover:bg-teal-900 text-white font-bold text-xs rounded-lg shadow-sm transition-colors">
+                ${UI.t("Close")}
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    `;
+
+    this.openModalHTML(html);
   }
 
   // -------------------------------------------------------------
@@ -1909,13 +2933,15 @@ class AppController {
 
   renderFiltersBarHTML() {
     const districts = GSCSCL_DATA.districts;
+    const currentRole = AppState.getCurrentRole() || { id: "guest" };
+    const isPreAudit = currentRole.id === "pre_audit";
 
     return `
       <div class="portal-card p-4 bg-slate-50/80 border-slate-200">
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 ${isPreAudit ? 'lg:grid-cols-4' : 'lg:grid-cols-5'} gap-3">
           <div class="lg:col-span-2 relative">
             <input type="text" id="table-search-input" 
-              placeholder="Search by Bill ID, Supplier, Commodity, GRN, District..." 
+              placeholder="${UI.t("Search by Bill ID, Supplier, Commodity, GRN, District...")}" 
               value="${this.currentFilter.search}"
               oninput="appController.setSearch(this.value)"
               class="w-full text-xs pl-9 pr-3 py-2 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent">
@@ -1925,35 +2951,37 @@ class AppController {
           <div>
             <select onchange="appController.setStatusFilter(this.value)" 
               class="w-full text-xs py-2 px-3 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600">
-              <option value="All" ${this.currentFilter.status === 'All' ? 'selected' : ''}>Status: All Stages</option>
-              <option value="Submitted" ${this.currentFilter.status === 'Submitted' ? 'selected' : ''}>Submitted</option>
-              <option value="Under Verification" ${this.currentFilter.status === 'Under Verification' ? 'selected' : ''}>Under Verification</option>
-              <option value="Pre-Audit" ${this.currentFilter.status === 'Pre-Audit' ? 'selected' : ''}>Pre-Audit</option>
-              <option value="Approval Pending" ${this.currentFilter.status === 'Approval Pending' ? 'selected' : ''}>Approval Pending</option>
-              <option value="Sent to Finance" ${this.currentFilter.status === 'Sent to Finance' ? 'selected' : ''}>Sent to Finance</option>
-              <option value="Payment Processed" ${this.currentFilter.status === 'Payment Processed' ? 'selected' : ''}>Payment Processed</option>
-              <option value="Exception Raised" ${this.currentFilter.status === 'Exception Raised' ? 'selected' : ''}>Exception Raised</option>
+              <option value="All" ${this.currentFilter.status === 'All' ? 'selected' : ''}>${UI.t("Status: All Stages")}</option>
+              <option value="Submitted" ${this.currentFilter.status === 'Submitted' ? 'selected' : ''}>${UI.t("Submitted")}</option>
+              <option value="Under Verification" ${this.currentFilter.status === 'Under Verification' ? 'selected' : ''}>${UI.t("Under Verification")}</option>
+              <option value="Pre-Audit" ${this.currentFilter.status === 'Pre-Audit' ? 'selected' : ''}>${UI.t("Pre-Audit")}</option>
+              <option value="Approval Pending" ${this.currentFilter.status === 'Approval Pending' ? 'selected' : ''}>${UI.t("Approval Pending")}</option>
+              <option value="Sent to Finance" ${this.currentFilter.status === 'Sent to Finance' ? 'selected' : ''}>${UI.t("Sent to Finance")}</option>
+              <option value="Payment Processed" ${this.currentFilter.status === 'Payment Processed' ? 'selected' : ''}>${UI.t("Payment Processed")}</option>
+              <option value="Exception Raised" ${this.currentFilter.status === 'Exception Raised' ? 'selected' : ''}>${UI.t("Exception Raised")}</option>
             </select>
           </div>
 
           <div>
             <select onchange="appController.setCategoryFilter(this.value)" 
               class="w-full text-xs py-2 px-3 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600">
-              <option value="All" ${this.currentFilter.category === 'All' ? 'selected' : ''}>Category: All (CGP / TOC)</option>
-              <option value="CGP" ${this.currentFilter.category === 'CGP' ? 'selected' : ''}>CGP (Grains & Pulses)</option>
-              <option value="TOC" ${this.currentFilter.category === 'TOC' ? 'selected' : ''}>TOC (Salt, Bags, Oil)</option>
+              <option value="All" ${this.currentFilter.category === 'All' ? 'selected' : ''}>${UI.t("Category: All (CGP / TOC)")}</option>
+              <option value="CGP" ${this.currentFilter.category === 'CGP' ? 'selected' : ''}>${UI.t("CGP (Grains & Pulses)")}</option>
+              <option value="TOC" ${this.currentFilter.category === 'TOC' ? 'selected' : ''}>${UI.t("TOC (Salt, Bags, Oil)")}</option>
             </select>
           </div>
 
-          <div>
-            <select onchange="appController.setDistrictFilter(this.value)" 
-              class="w-full text-xs py-2 px-3 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600">
-              <option value="All" ${this.currentFilter.district === 'All' ? 'selected' : ''}>District: All Districts</option>
-              ${districts.map(d => `
-                <option value="${d}" ${this.currentFilter.district === d ? 'selected' : ''}>${d}</option>
-              `).join('')}
-            </select>
-          </div>
+          ${!isPreAudit ? `
+            <div>
+              <select onchange="appController.setDistrictFilter(this.value)" 
+                class="w-full text-xs py-2 px-3 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600">
+                <option value="All" ${this.currentFilter.district === 'All' ? 'selected' : ''}>${UI.t("District: All Districts")}</option>
+                ${districts.map(d => `
+                  <option value="${d}" ${this.currentFilter.district === d ? 'selected' : ''}>${UI.t(d)}</option>
+                `).join('')}
+              </select>
+            </div>
+          ` : ''}
         </div>
       </div>
     `;
@@ -1969,10 +2997,10 @@ class AppController {
       return `
         <div class="p-12 text-center text-slate-400">
           <i class="fa-solid fa-folder-open text-4xl mb-3"></i>
-          <h4 class="text-sm font-bold text-slate-700">No Matching Bills Found</h4>
-          <p class="text-xs text-slate-500 mt-1">Try modifying your search query or stage filters.</p>
+          <h4 class="text-sm font-bold text-slate-700">${UI.t("No Matching Bills Found")}</h4>
+          <p class="text-xs text-slate-500 mt-1">${UI.t("Try modifying your search query or stage filters.")}</p>
           <button onclick="appController.resetFilters()" class="mt-3 px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded">
-            Reset Filters
+            ${UI.t("Reset Filters")}
           </button>
         </div>
       `;
@@ -1983,25 +3011,26 @@ class AppController {
         <table class="w-full text-xs text-left">
           <thead class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
             <tr>
-              <th class="p-3">Bill ID & Ref</th>
-              <th class="p-3">Supplier & District</th>
-              <th class="p-3">Commodity & GRN</th>
-              <th class="p-3 text-right">Quantity</th>
-              <th class="p-3 text-right">Net Amount</th>
-              <th class="p-3 text-center">Lifecycle Status</th>
-              <th class="p-3 text-right">Actions</th>
+              <th class="p-3">${UI.t("Bill ID & Ref")}</th>
+              <th class="p-3">${UI.t("Supplier & District")}</th>
+              <th class="p-3">${UI.t("Commodity & GRN")}</th>
+              <th class="p-3 text-right">${UI.t("Quantity")}</th>
+              <th class="p-3 text-right">${UI.t("Net Amount")}</th>
+              <th class="p-3 text-center">${UI.t("Lifecycle Status")}</th>
+              <th class="p-3 text-right">${UI.t("Actions")}</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100 bg-white">
             ${bills.map(b => `
               <tr class="hover:bg-slate-50 transition-colors group">
                 <td class="p-3">
-                  <div class="font-mono font-bold text-blue-900 flex items-center gap-1.5">
-                    ${b.id}
+                  <button type="button" onclick="appController.openBillDetailsModal('${b.id}')" 
+                    class="font-mono font-bold text-blue-900 hover:text-blue-700 hover:underline flex items-center gap-1.5 text-left">
+                    <span>${b.id}</span>
                     ${b.isDelayed ? '<span class="w-2 h-2 rounded-full bg-rose-500 pulse-indicator" title="SLA Delayed"></span>' : ''}
-                  </div>
+                  </button>
                   <div class="text-[11px] text-slate-500 font-mono">Inv: ${b.invoiceNumber}</div>
-                  <div class="text-[10px] text-slate-400">${b.submissionDate}</div>
+                  <div class="text-[10px] text-slate-400">${UI.formatDigits(b.submissionDate)}</div>
                 </td>
 
                 <td class="p-3">
@@ -2009,7 +3038,7 @@ class AppController {
                     ${b.supplierName}
                   </div>
                   <div class="text-[11px] text-slate-500 flex items-center gap-1">
-                    <i class="fa-solid fa-location-dot text-slate-400"></i> ${b.district}
+                    <i class="fa-solid fa-location-dot text-slate-400"></i> ${b.district} ${b.branch ? '• ' + b.branch : ''}
                   </div>
                 </td>
 
@@ -2022,18 +3051,18 @@ class AppController {
                 </td>
 
                 <td class="p-3 text-right">
-                  <div class="font-mono font-bold text-slate-900">${b.billedQty.toLocaleString('en-IN')} ${b.unit}</div>
-                  <div class="text-[11px] text-slate-500 font-mono">@ ₹${b.ratePerUnit.toFixed(0)}</div>
+                  <div class="font-mono font-bold text-slate-900">${UI.formatNumber(b.billedQty)} ${UI.t(b.unit)}</div>
+                  <div class="text-[11px] text-slate-500 font-mono">@ ₹${UI.formatNumber(b.ratePerUnit.toFixed(0))}</div>
                 </td>
 
                 <td class="p-3 text-right">
-                  <div class="font-mono font-bold text-slate-900 text-[13px]">₹${b.netPayable.toLocaleString('en-IN')}</div>
-                  <div class="text-[10px] text-slate-400 line-through">Gross: ₹${b.grossAmount.toLocaleString('en-IN')}</div>
+                  <div class="font-mono font-bold text-slate-900 text-[13px]">₹${UI.formatNumber(b.netPayable)}</div>
+                  <div class="text-[10px] text-slate-400 line-through">Gross: ₹${UI.formatNumber(b.grossAmount)}</div>
                 </td>
 
                 <td class="p-3 text-center">
                   ${UI.renderStatusBadge(b.status)}
-                  <div class="text-[10px] text-slate-400 mt-1">${b.currentStage}</div>
+                  <div class="text-[10px] text-slate-400 mt-1">${UI.t(b.currentStage)}</div>
                 </td>
 
                 <td class="p-3 text-right">
@@ -2063,16 +3092,16 @@ class AppController {
       return `
         <button onclick="appController.openResolveExceptionModal('${bill.id}')" 
           class="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded text-[11px] font-bold flex items-center gap-1 shadow-sm">
-          <i class="fa-solid fa-wrench"></i> Resolve
+          <i class="fa-solid fa-wrench"></i> ${UI.t("Resolve")}
         </button>
       `;
     }
 
-    if (currentRole.id === "godown_manager" && (bill.status === "Submitted" || bill.status === "Under Verification")) {
+    if (currentRole.id === "godown_manager") {
       return `
         <button onclick="appController.openBillDetailsModal('${bill.id}')" 
-          class="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded text-[11px] font-bold flex items-center gap-1 shadow-sm">
-          <i class="fa-solid fa-magnifying-glass-check"></i> Verify Inward
+          class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[11px] font-semibold flex items-center gap-1">
+          <i class="fa-solid fa-eye"></i> ${UI.t("Details")}
         </button>
       `;
     }
@@ -2081,7 +3110,7 @@ class AppController {
       return `
         <button onclick="appController.openBillDetailsModal('${bill.id}')" 
           class="px-2.5 py-1 bg-teal-700 hover:bg-teal-800 text-white rounded text-[11px] font-bold flex items-center gap-1 shadow-sm">
-          <i class="fa-solid fa-clipboard-check"></i> Pre-Audit Scrutiny
+          <i class="fa-solid fa-clipboard-check"></i> ${UI.t("Pre-Audit Scrutiny")}
         </button>
       `;
     }
@@ -2090,7 +3119,7 @@ class AppController {
       return `
         <button onclick="appController.openBillDetailsModal('${bill.id}')" 
           class="px-2.5 py-1 bg-purple-700 hover:bg-purple-800 text-white rounded text-[11px] font-bold flex items-center gap-1 shadow-sm">
-          <i class="fa-solid fa-stamp"></i> Sanction Bill
+          <i class="fa-solid fa-stamp"></i> ${UI.t("Sanction Bill")}
         </button>
       `;
     }
@@ -2099,7 +3128,7 @@ class AppController {
       return `
         <button onclick="appController.openBillDetailsModal('${bill.id}')" 
           class="px-2.5 py-1 bg-indigo-700 hover:bg-indigo-800 text-white rounded text-[11px] font-bold flex items-center gap-1 shadow-sm">
-          <i class="fa-solid fa-money-bill-transfer"></i> Disburse RTGS
+          <i class="fa-solid fa-money-bill-transfer"></i> ${UI.t("Disburse RTGS")}
         </button>
       `;
     }
@@ -2108,7 +3137,7 @@ class AppController {
       return `
         <button onclick="appController.openVoucherModal('${bill.id}')" 
           class="px-2.5 py-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded text-[11px] font-semibold flex items-center gap-1 shadow-sm">
-          <i class="fa-solid fa-receipt"></i> Voucher
+          <i class="fa-solid fa-receipt"></i> ${UI.t("Voucher")}
         </button>
       `;
     }
@@ -2116,7 +3145,7 @@ class AppController {
     return `
       <button onclick="appController.openBillDetailsModal('${bill.id}')" 
         class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[11px] font-semibold flex items-center gap-1">
-        <i class="fa-solid fa-eye"></i> Details
+        <i class="fa-solid fa-eye"></i> ${UI.t("Details")}
       </button>
     `;
   }
@@ -2566,10 +3595,14 @@ class AppController {
                 </button>
               ` : ''}
 
-              ${(bill.status === 'Submitted' || bill.status === 'Under Verification') ? `
+              ${currentRole.id === 'godown_manager' ? `
+                <span class="text-xs text-amber-800 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200">
+                  <i class="fa-solid fa-circle-info mr-1"></i> Godown Managers verify physical inward stock in the Deliveries tab. Bill verification is handled by Branch Officers.
+                </span>
+              ` : ((bill.status === 'Submitted' || bill.status === 'Under Verification') && currentRole.id === 'admin') ? `
                 <button onclick="appController.executePassGodown('${bill.id}')" 
                   class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow">
-                  <i class="fa-solid fa-check"></i> Certify Stock & Forward to Pre-Audit
+                  <i class="fa-solid fa-check"></i> Certify Stock & Forward to Pre-Audit (Admin Override)
                 </button>
               ` : ''}
 
@@ -3663,6 +4696,792 @@ class AppController {
   // -------------------------------------------------------------
   // FAST ACTION HANDLERS
   // -------------------------------------------------------------
+
+
+  // -------------------------------------------------------------
+  // GODOWN MANAGER MODALS & HANDLERS
+  // -------------------------------------------------------------
+
+  // Filter deliveries on Godown Deliveries view
+  filterGodownDeliveries(filterType) {
+    const allDeliveries = AppState.getGodownDeliveries ? AppState.getGodownDeliveries() : [];
+    let filtered = allDeliveries;
+
+    // Reset button styles
+    ['all', 'waiting', 'needs_correction', 'confirmed', 'receipt_issued'].forEach(t => {
+      const btn = document.getElementById('btn-filter-del-' + (t === 'needs_correction' ? 'correction' : (t === 'receipt_issued' ? 'receipt' : t)));
+      if (btn) {
+        btn.className = "px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700";
+      }
+    });
+
+    const activeBtn = document.getElementById('btn-filter-del-' + (filterType === 'needs_correction' ? 'correction' : (filterType === 'receipt_issued' ? 'receipt' : filterType)));
+    if (activeBtn) {
+      activeBtn.className = "px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-600 text-white shadow-xs";
+    }
+
+    if (filterType === 'waiting') {
+      filtered = allDeliveries.filter(d => d.deliveryStatus === 'Waiting for Verification' || d.deliveryStatus === 'Verification in Progress');
+    } else if (filterType === 'needs_correction') {
+      filtered = allDeliveries.filter(d => d.deliveryStatus === 'Needs Correction');
+    } else if (filterType === 'confirmed') {
+      filtered = allDeliveries.filter(d => d.deliveryStatus === 'Delivery Confirmed');
+    } else if (filterType === 'receipt_issued') {
+      filtered = allDeliveries.filter(d => d.deliveryStatus === 'Receipt Issued');
+    }
+
+    const container = document.getElementById('godown-deliveries-table-container');
+    if (container) {
+      container.innerHTML = this.renderDeliveriesTableHTML(filtered);
+    }
+  }
+
+  handleDeliverySearch(query) {
+    const allDeliveries = AppState.getGodownDeliveries ? AppState.getGodownDeliveries() : [];
+    const q = (query || "").toLowerCase().trim();
+    if (!q) {
+      this.filterGodownDeliveries('all');
+      return;
+    }
+
+    const filtered = allDeliveries.filter(d => 
+      (d.deliveryId && d.deliveryId.toLowerCase().includes(q)) ||
+      (d.orderNumber && d.orderNumber.toLowerCase().includes(q)) ||
+      (d.truckNumber && d.truckNumber.toLowerCase().includes(q)) ||
+      (d.supplierName && d.supplierName.toLowerCase().includes(q)) ||
+      (d.commodity && d.commodity.toLowerCase().includes(q))
+    );
+
+    const container = document.getElementById('godown-deliveries-table-container');
+    if (container) {
+      container.innerHTML = this.renderDeliveriesTableHTML(filtered);
+    }
+  }
+
+  // Open "Check Delivery" (Verify Inward) modal
+  openVerifyDeliveryModal(deliveryId) {
+    const delivery = AppState.getDeliveryById(deliveryId);
+    if (!delivery) {
+      this.showToast("Delivery record not found.", "error");
+      return;
+    }
+
+    const grossDefault = delivery.grossWeightKg || "";
+    const tareDefault = delivery.tareWeightKg || "";
+    const actualQtyDefault = delivery.actualQtyReceived || delivery.expectedQty || "";
+    const moistureDefault = delivery.moisturePercent || "";
+    const bagsDefault = delivery.bagsCount || "";
+    const slipDefault = delivery.weighbridgeSlipNo || "";
+    const maxMoisture = delivery.maxAllowedMoisture || 12.0;
+
+    const html = `
+      <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full border border-slate-200 overflow-hidden my-6 animate-in fade-in zoom-in-95 duration-150">
+          
+          <div class="bg-amber-900 text-white p-5 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-lg bg-amber-400 text-slate-950 flex items-center justify-center font-bold text-lg">
+                <i class="fa-solid fa-truck-ramp-box"></i>
+              </div>
+              <div>
+                <h3 class="text-base font-bold">Check Inward Delivery - ${delivery.deliveryId}</h3>
+                <p class="text-xs text-amber-200">Record actual weighbridge weight, bags count, and moisture test</p>
+              </div>
+            </div>
+            <button onclick="appController.closeModal()" class="text-amber-200 hover:text-white text-lg">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+
+          <!-- Order Context Header -->
+          <div class="bg-amber-50/70 p-4 border-b border-amber-200 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+            <div>
+              <span class="text-slate-500 block text-[11px]">Supply Order #:</span>
+              <strong class="font-mono text-slate-900">${delivery.orderNumber}</strong>
+            </div>
+            <div>
+              <span class="text-slate-500 block text-[11px]">Supplier:</span>
+              <strong class="text-slate-900 truncate block">${delivery.supplierName}</strong>
+            </div>
+            <div>
+              <span class="text-slate-500 block text-[11px]">Commodity:</span>
+              <strong class="text-slate-900">${delivery.commodity}</strong>
+            </div>
+            <div>
+              <span class="text-slate-500 block text-[11px]">Expected Quantity:</span>
+              <strong class="font-mono text-slate-900 text-sm">${delivery.expectedQty} ${delivery.unit}</strong>
+            </div>
+          </div>
+
+          <form id="verify-delivery-form" onsubmit="appController.handleVerifyDeliverySubmit(event, '${delivery.deliveryId}')" class="p-6 space-y-4">
+            
+            <div id="verify-error-box" class="hidden p-3 bg-rose-50 border border-rose-300 rounded-lg text-rose-800 text-xs font-semibold"></div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  Truck Registration Number <span class="text-rose-500">*</span>
+                </label>
+                <input type="text" id="del-truck-number" value="${delivery.truckNumber || ''}" required
+                  class="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-lg font-mono font-bold focus:ring-2 focus:ring-amber-500 focus:bg-white">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  Weighbridge Slip Number <span class="text-rose-500">*</span>
+                </label>
+                <input type="text" id="del-slip-number" value="${slipDefault}" required placeholder="e.g. WB-26-85112"
+                  class="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-lg font-mono font-bold focus:ring-2 focus:ring-amber-500 focus:bg-white">
+              </div>
+            </div>
+
+            <!-- Weighbridge Weight Calculations -->
+            <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+              <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wide flex items-center gap-1.5">
+                <i class="fa-solid fa-scale-balanced text-amber-700"></i> Weighbridge Weight Verification (kg)
+              </h4>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label class="block text-[11px] font-bold text-slate-600 mb-1">Gross Weight (kg) *</label>
+                  <input type="number" id="del-gross-weight" value="${grossDefault}" required min="1" step="10" placeholder="e.g. 28500"
+                    oninput="appController.calculateNetWeight()"
+                    class="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg font-mono font-bold focus:ring-2 focus:ring-amber-500">
+                </div>
+                <div>
+                  <label class="block text-[11px] font-bold text-slate-600 mb-1">Tare Weight (kg) *</label>
+                  <input type="number" id="del-tare-weight" value="${tareDefault}" required min="1" step="10" placeholder="e.g. 10500"
+                    oninput="appController.calculateNetWeight()"
+                    class="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg font-mono font-bold focus:ring-2 focus:ring-amber-500">
+                </div>
+                <div>
+                  <label class="block text-[11px] font-bold text-slate-600 mb-1">Net Weight (Calculated)</label>
+                  <div id="del-net-weight-display" class="w-full text-xs p-2.5 bg-emerald-50 border border-emerald-300 text-emerald-900 rounded-lg font-mono font-bold">
+                    ${delivery.netWeightKg ? (delivery.netWeightKg).toLocaleString('en-IN') + ' kg' : 'Auto calculated'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Quantity & Moisture -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  Actual Received Qty (${delivery.unit}) <span class="text-rose-500">*</span>
+                </label>
+                <input type="number" id="del-actual-qty" value="${actualQtyDefault}" required min="0.1" step="0.1"
+                  class="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-lg font-mono font-bold text-slate-900 focus:ring-2 focus:ring-amber-500 focus:bg-white">
+                <span class="text-[10px] text-slate-500">Allowed limit: ${(delivery.expectedQty * 1.05).toFixed(1)} ${delivery.unit} (max +5%)</span>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  Bags Count <span class="text-rose-500">*</span>
+                </label>
+                <input type="number" id="del-bags-count" value="${bagsDefault}" required min="1" step="1" placeholder="e.g. 360"
+                  class="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-lg font-mono font-bold focus:ring-2 focus:ring-amber-500 focus:bg-white">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  Moisture Content (%) <span class="text-rose-500">*</span>
+                </label>
+                <input type="number" id="del-moisture-percent" value="${moistureDefault}" required min="0" max="30" step="0.1" placeholder="e.g. 9.8"
+                  class="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-lg font-mono font-bold focus:ring-2 focus:ring-amber-500 focus:bg-white">
+                <span class="text-[10px] text-slate-500">Standard limit: ${maxMoisture}%</span>
+              </div>
+            </div>
+
+            <!-- Stacking Bay -->
+            <div>
+              <label class="block text-xs font-bold text-slate-700 uppercase mb-1">
+                Godown Stacking Bay / Warehouse Section
+              </label>
+              <select id="del-stacking-bay" class="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:bg-white">
+                <option value="Bay 1 (Oil & Packaged Goods)">Bay 1 (Oil & Packaged Goods)</option>
+                <option value="Bay 2 (Grain Silo)">Bay 2 (Grain Silo)</option>
+                <option value="Bay 3 (Coarse Grains)">Bay 3 (Coarse Grains)</option>
+                <option value="Bay 4 (Pulse Warehouse)" selected>Bay 4 (Pulse Warehouse)</option>
+                <option value="Bay 5 (General Stock)">Bay 5 (General Stock)</option>
+              </select>
+            </div>
+
+            <!-- Quality Checkbox -->
+            <div class="p-3 bg-slate-50 border border-slate-200 rounded-lg">
+              <label class="flex items-start gap-2.5 cursor-pointer">
+                <input type="checkbox" id="del-quality-passed" ${delivery.qualityPassed ? 'checked' : ''} class="mt-0.5 text-amber-600 rounded focus:ring-amber-500">
+                <span class="text-xs text-slate-800 font-semibold">
+                  I confirm that physical goods have been inspected at the godown: No live pest infestation, moisture mold, foreign matter or physical damage detected.
+                </span>
+              </label>
+            </div>
+
+            <!-- Remarks -->
+            <div>
+              <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Inspection Remarks</label>
+              <textarea id="del-remarks" rows="2" placeholder="Enter remarks regarding goods condition, packaging, or weighbridge reconciliation..."
+                class="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:bg-white">${delivery.remarks || ''}</textarea>
+            </div>
+
+            <div class="pt-4 border-t border-slate-200 flex items-center justify-between gap-3">
+              <button type="button" onclick="appController.openClarifyDeliveryModal('${delivery.deliveryId}')"
+                class="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors">
+                <i class="fa-solid fa-triangle-exclamation"></i> Report Delivery Issue
+              </button>
+
+              <div class="flex items-center gap-2">
+                <button type="button" onclick="appController.closeModal()"
+                  class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-lg">
+                  Cancel
+                </button>
+                <button type="submit"
+                  class="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-lg shadow-sm flex items-center gap-1.5">
+                  <i class="fa-solid fa-check"></i> Save & Confirm Delivery
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    `;
+
+    this.openModalHTML(html);
+  }
+
+  calculateNetWeight() {
+    const gross = parseFloat(document.getElementById('del-gross-weight')?.value);
+    const tare = parseFloat(document.getElementById('del-tare-weight')?.value);
+    const display = document.getElementById('del-net-weight-display');
+    if (!display) return;
+
+    if (!isNaN(gross) && !isNaN(tare) && gross > tare) {
+      const net = gross - tare;
+      display.innerText = net.toLocaleString('en-IN') + ' kg (' + (net / 100).toFixed(2) + ' Qtl)';
+      display.className = "w-full text-xs p-2.5 bg-emerald-50 border border-emerald-300 text-emerald-900 rounded-lg font-mono font-bold";
+    } else if (!isNaN(gross) && !isNaN(tare) && gross <= tare) {
+      display.innerText = "Error: Gross must be > Tare";
+      display.className = "w-full text-xs p-2.5 bg-rose-50 border border-rose-300 text-rose-900 rounded-lg font-mono font-bold";
+    } else {
+      display.innerText = "Auto calculated";
+      display.className = "w-full text-xs p-2.5 bg-slate-50 border border-slate-300 text-slate-600 rounded-lg font-mono";
+    }
+  }
+
+  handleVerifyDeliverySubmit(event, deliveryId) {
+    event.preventDefault();
+    const errorBox = document.getElementById('verify-error-box');
+
+    const truckNumber = document.getElementById('del-truck-number')?.value.trim();
+    const weighbridgeSlipNo = document.getElementById('del-slip-number')?.value.trim();
+    const grossWeightKg = document.getElementById('del-gross-weight')?.value;
+    const tareWeightKg = document.getElementById('del-tare-weight')?.value;
+    const actualQtyReceived = document.getElementById('del-actual-qty')?.value;
+    const bagsCount = document.getElementById('del-bags-count')?.value;
+    const moisturePercent = document.getElementById('del-moisture-percent')?.value;
+    const stackingBay = document.getElementById('del-stacking-bay')?.value;
+    const qualityPassed = document.getElementById('del-quality-passed')?.checked;
+    const remarks = document.getElementById('del-remarks')?.value.trim();
+
+    if (!qualityPassed) {
+      if (errorBox) {
+        errorBox.innerText = "Please confirm the physical quality check before confirming this delivery.";
+        errorBox.classList.remove('hidden');
+      }
+      return;
+    }
+
+    const result = AppState.saveInwardDelivery(deliveryId, {
+      truckNumber,
+      weighbridgeSlipNo,
+      grossWeightKg,
+      tareWeightKg,
+      actualQtyReceived,
+      bagsCount,
+      moisturePercent,
+      stackingBay,
+      qualityPassed,
+      remarks
+    });
+
+    if (!result.success) {
+      if (errorBox) {
+        errorBox.innerText = result.message;
+        errorBox.classList.remove('hidden');
+      }
+      return;
+    }
+
+    this.closeModal();
+    this.showToast(result.message, "success");
+    this.renderMainContent();
+  }
+
+  // Handle direct issuance of Delivery Receipt (ePOD)
+  handleIssueReceipt(deliveryId) {
+    const result = AppState.issueDeliveryReceipt(deliveryId);
+    if (!result.success) {
+      this.showToast(result.message, "error");
+      return;
+    }
+
+    this.showToast(result.message, "success");
+    this.renderMainContent();
+    // Open the finalized receipt immediately for preview/print
+    if (result.receiptId) {
+      this.openReceiptModal(result.receiptId);
+    }
+  }
+
+  // Open "Clarify Stock / Report Delivery Problem" modal
+  openClarifyDeliveryModal(deliveryId) {
+    const delivery = AppState.getDeliveryById(deliveryId);
+    if (!delivery) {
+      this.showToast("Delivery record not found.", "error");
+      return;
+    }
+
+    const html = `
+      <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full border border-slate-200 overflow-hidden my-6 animate-in fade-in zoom-in-95 duration-150">
+          
+          <div class="bg-rose-900 text-white p-5 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-lg bg-rose-500 text-white flex items-center justify-center font-bold text-lg">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+              </div>
+              <div>
+                <h3 class="text-base font-bold">Report Delivery Issue</h3>
+                <p class="text-xs text-rose-200">Delivery ID: ${delivery.deliveryId} • ${delivery.commodity}</p>
+              </div>
+            </div>
+            <button onclick="appController.closeModal()" class="text-rose-200 hover:text-white text-lg">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+
+          <form id="clarify-delivery-form" onsubmit="appController.handleClarifyDeliverySubmit(event, '${delivery.deliveryId}')" class="p-6 space-y-4">
+            
+            <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs">
+              <div>Order Number: <strong class="font-mono text-slate-800">${delivery.orderNumber}</strong></div>
+              <div>Supplier: <strong class="text-slate-800">${delivery.supplierName}</strong></div>
+              <div>Truck Number: <strong class="font-mono text-slate-800">${delivery.truckNumber}</strong></div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-700 uppercase mb-1">
+                Select Type of Problem <span class="text-rose-500">*</span>
+              </label>
+              <select id="clarify-problem-type" required
+                class="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-lg font-semibold text-slate-800 focus:ring-2 focus:ring-rose-500 focus:bg-white">
+                <option value="">-- Select problem description --</option>
+                <option value="Received quantity does not match the order">Received quantity does not match the order</option>
+                <option value="Recorded weight does not match the physical delivery">Recorded weight does not match the physical delivery</option>
+                <option value="Moisture content is higher than the standard limit">Moisture content is higher than the standard limit</option>
+                <option value="Delivery documents or weighbridge slip missing">Delivery documents or weighbridge slip missing</option>
+                <option value="Goods damaged, infested, or poor physical quality">Goods damaged, infested, or poor physical quality</option>
+                <option value="Other delivery problem">Other delivery problem</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-700 uppercase mb-1">
+                Detailed Problem Description <span class="text-rose-500">*</span>
+              </label>
+              <textarea id="clarify-details" rows="3" required placeholder="Explain exactly what discrepancy or defect was observed during inspection..."
+                class="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:bg-white"></textarea>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-700 uppercase mb-1">
+                Proposed Action / Next Step
+              </label>
+              <select id="clarify-proposed-action"
+                class="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-800 focus:ring-2 focus:ring-rose-500 focus:bg-white">
+                <option value="Hold consignment in holding bay for joint re-inspection">Hold consignment in holding bay for joint re-inspection</option>
+                <option value="Send duplicate sample to Agmark accredited laboratory">Send duplicate sample to Agmark accredited laboratory</option>
+                <option value="Request supplier to rectify weight slip and documents">Request supplier to rectify weight slip and documents</option>
+                <option value="Return vehicle without unloading">Return vehicle without unloading</option>
+              </select>
+            </div>
+
+            <div class="pt-4 border-t border-slate-200 flex items-center justify-end gap-2">
+              <button type="button" onclick="appController.closeModal()"
+                class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-lg">
+                Cancel
+              </button>
+              <button type="submit"
+                class="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-lg shadow-sm flex items-center gap-1.5">
+                <i class="fa-solid fa-paper-plane"></i> Submit Clarification
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    `;
+
+    this.openModalHTML(html);
+  }
+
+  handleClarifyDeliverySubmit(event, deliveryId) {
+    event.preventDefault();
+    const problemType = document.getElementById('clarify-problem-type')?.value;
+    const details = document.getElementById('clarify-details')?.value;
+    const proposedAction = document.getElementById('clarify-proposed-action')?.value;
+
+    const result = AppState.reportDeliveryClarification(deliveryId, {
+      problemType,
+      details,
+      proposedAction
+    });
+
+    if (!result.success) {
+      this.showToast(result.message, "error");
+      return;
+    }
+
+    this.closeModal();
+    this.showToast(result.message, "warning");
+    this.renderMainContent();
+  }
+
+  // Open official Digital Delivery Receipt (ePOD / GRN)
+  openReceiptModal(receiptId) {
+    const receipts = AppState.state.availableGRNs || [];
+    const r = receipts.find(item => item.grnNumber === receiptId);
+    if (!r) {
+      this.showToast("Receipt record not found.", "error");
+      return;
+    }
+
+    const html = `
+      <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full border border-slate-200 overflow-hidden my-6 animate-in fade-in zoom-in-95 duration-150">
+          
+          <!-- Government Receipt Header -->
+          <div class="bg-indigo-950 text-white p-6 border-b-4 border-amber-500">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-xl bg-white text-indigo-900 flex items-center justify-center font-bold text-2xl shadow-sm">
+                  <i class="fa-solid fa-receipt"></i>
+                </div>
+                <div>
+                  <span class="text-[11px] font-bold text-amber-300 tracking-wider uppercase block">Government of Gujarat • GSCSCL</span>
+                  <h3 class="text-lg font-bold">Digital Delivery Receipt (ePOD / GRN)</h3>
+                  <p class="text-xs text-indigo-200">Electronic Proof of Delivery & Stock Acceptance Certificate</p>
+                </div>
+              </div>
+              <button onclick="appController.closeModal()" class="text-indigo-200 hover:text-white text-xl">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="p-6 space-y-5 text-xs text-slate-800">
+            <!-- Receipt Meta -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3.5 bg-slate-50 border border-slate-200 rounded-xl">
+              <div>
+                <span class="text-slate-400 text-[10px] uppercase font-bold block">Receipt ID:</span>
+                <strong class="font-mono text-indigo-950 text-sm font-bold">${r.grnNumber}</strong>
+              </div>
+              <div>
+                <span class="text-slate-400 text-[10px] uppercase font-bold block">Issued Date:</span>
+                <strong class="text-slate-900">${UI.formatDigits(r.inwardDate)}</strong>
+              </div>
+              <div>
+                <span class="text-slate-400 text-[10px] uppercase font-bold block">Godown Station:</span>
+                <strong class="text-slate-900 truncate block">${r.godownName}</strong>
+              </div>
+              <div>
+                <span class="text-slate-400 text-[10px] uppercase font-bold block">District:</span>
+                <strong class="text-slate-900">${r.district}</strong>
+              </div>
+            </div>
+
+            <!-- Supplier & Order Info -->
+            <div class="border border-slate-200 rounded-xl p-4 space-y-2">
+              <h4 class="text-xs font-bold text-slate-900 uppercase tracking-wide flex items-center gap-1.5 border-b border-slate-100 pb-2">
+                <i class="fa-solid fa-building text-blue-800"></i> Supplier & Order Details
+              </h4>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <div>
+                  <span class="text-slate-400 text-[11px] block">Supplier Name:</span>
+                  <strong class="text-slate-900">${r.supplierName}</strong>
+                  <span class="text-[11px] text-slate-500 font-mono block">ID: ${r.supplierId}</span>
+                </div>
+                <div>
+                  <span class="text-slate-400 text-[11px] block">Supply Order (PO #):</span>
+                  <strong class="font-mono text-blue-900">${r.poNumber}</strong>
+                  <span class="text-[11px] text-slate-500 block">Commodity: ${r.commodity} (${r.category})</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Inward Weighment & Quality Schedule -->
+            <div class="border border-slate-200 rounded-xl p-4 space-y-2">
+              <h4 class="text-xs font-bold text-slate-900 uppercase tracking-wide flex items-center gap-1.5 border-b border-slate-100 pb-2">
+                <i class="fa-solid fa-scale-balanced text-emerald-800"></i> Weighbridge Weights & Physical Quality
+              </h4>
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+                <div class="p-2.5 bg-slate-50 rounded-lg border border-slate-200">
+                  <span class="text-slate-400 text-[10px] block">Gross Weight:</span>
+                  <strong class="font-mono text-slate-900">${(r.grossWeightKg || 0).toLocaleString('en-IN')} kg</strong>
+                </div>
+                <div class="p-2.5 bg-slate-50 rounded-lg border border-slate-200">
+                  <span class="text-slate-400 text-[10px] block">Tare Weight:</span>
+                  <strong class="font-mono text-slate-900">${(r.tareWeightKg || 0).toLocaleString('en-IN')} kg</strong>
+                </div>
+                <div class="p-2.5 bg-emerald-50 rounded-lg border border-emerald-200">
+                  <span class="text-emerald-700 text-[10px] font-bold block">Net Confirmed Weight:</span>
+                  <strong class="font-mono text-emerald-950 text-sm font-bold">${(r.netWeightKg || 0).toLocaleString('en-IN')} kg</strong>
+                </div>
+                <div class="p-2.5 bg-emerald-50 rounded-lg border border-emerald-200">
+                  <span class="text-emerald-700 text-[10px] font-bold block">Accepted Quantity:</span>
+                  <strong class="font-mono text-emerald-950 text-sm font-bold">${r.quantityQuintals} Qtl</strong>
+                  <span class="text-[10px] text-emerald-800 font-mono block">(${r.bagsCount || 0} Bags)</span>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 text-[11px]">
+                <div>Truck: <strong class="font-mono text-slate-900">${r.truckNumber}</strong></div>
+                <div>Slip #: <strong class="font-mono text-slate-900">${r.weighbridgeSlipNo}</strong></div>
+                <div>Moisture: <strong class="text-emerald-700 font-mono">${r.moisturePercent}%</strong></div>
+              </div>
+            </div>
+
+            <!-- Officer Endorsement -->
+            <div class="p-3 bg-slate-50 border border-slate-200 rounded-lg text-slate-600 text-[11px] space-y-1">
+              <div class="font-bold text-slate-800">Certification Endorsement:</div>
+              <p>Certified that the above physical goods have been inspected, weighed on digital weighbridge, and physically accepted into warehouse custody. This digital receipt is finalized and authorized for supplier invoice creation.</p>
+              <div class="pt-1 text-slate-500 font-mono">Issued by: R. K. Patel, Godown In-Charge • GSCSCL Central Godown, Sanand</div>
+            </div>
+          </div>
+
+          <div class="bg-slate-50 p-4 border-t border-slate-200 flex items-center justify-between">
+            <span class="text-[11px] text-slate-500">Security Hash: SHA256-GJ-${r.grnNumber.slice(-4)}-VALID</span>
+            <div class="flex items-center gap-2">
+              <button onclick="window.print()" class="px-3.5 py-1.5 bg-white hover:bg-slate-100 text-slate-800 font-bold text-xs rounded-lg border border-slate-300 flex items-center gap-1.5">
+                <i class="fa-solid fa-print"></i> Print Receipt
+              </button>
+              <button onclick="appController.closeModal()" class="px-4 py-1.5 bg-indigo-900 hover:bg-indigo-800 text-white font-bold text-xs rounded-lg">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    this.openModalHTML(html);
+  }
+
+  // Open Supply Order Details Modal
+  openSupplyOrderDetailsModal(orderNumber) {
+    const orders = AppState.state.supplyOrders || [];
+    const o = orders.find(item => item.orderNumber === orderNumber);
+    if (!o) {
+      this.showToast("Order record not found.", "error");
+      return;
+    }
+
+    const html = `
+      <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full border border-slate-200 overflow-hidden my-6 animate-in fade-in zoom-in-95 duration-150">
+          
+          <div class="bg-slate-900 text-white p-5 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-lg">
+                <i class="fa-solid fa-clipboard-list"></i>
+              </div>
+              <div>
+                <h3 class="text-base font-bold font-mono">${o.orderNumber}</h3>
+                <p class="text-xs text-slate-300">Supply Order Specifications & Delivery Schedule</p>
+              </div>
+            </div>
+            <button onclick="appController.closeModal()" class="text-slate-400 hover:text-white text-lg">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+
+          <div class="p-6 space-y-4 text-xs">
+            <div class="p-3 bg-blue-50 border border-blue-200 rounded-lg space-y-1">
+              <span class="text-[11px] text-blue-700 font-bold uppercase">Allocated Destination</span>
+              <div class="font-bold text-slate-900 text-sm">${o.godownName}</div>
+              <div class="text-slate-600">District: ${o.district}</div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div class="p-2.5 bg-slate-50 rounded-lg border border-slate-200">
+                <span class="text-slate-400 text-[10px] uppercase font-bold block">Supplier Name:</span>
+                <strong class="text-slate-900 truncate block">${o.supplierName}</strong>
+              </div>
+              <div class="p-2.5 bg-slate-50 rounded-lg border border-slate-200">
+                <span class="text-slate-400 text-[10px] uppercase font-bold block">Commodity:</span>
+                <strong class="text-slate-900">${o.commodity}</strong>
+              </div>
+              <div class="p-2.5 bg-slate-50 rounded-lg border border-slate-200">
+                <span class="text-slate-400 text-[10px] uppercase font-bold block">Expected Quantity:</span>
+                <strong class="font-mono text-slate-900 font-bold">${o.expectedQty} ${o.unit}</strong>
+              </div>
+              <div class="p-2.5 bg-slate-50 rounded-lg border border-slate-200">
+                <span class="text-slate-400 text-[10px] uppercase font-bold block">Delivery Due Date:</span>
+                <strong class="text-slate-900">${UI.formatDigits(o.deliveryDueDate)}</strong>
+              </div>
+              <div class="p-2.5 bg-emerald-50 rounded-lg border border-emerald-200">
+                <span class="text-emerald-700 text-[10px] uppercase font-bold block">Delivered So Far:</span>
+                <strong class="font-mono text-emerald-950 font-bold">${o.deliveredQty || 0} ${o.unit}</strong>
+              </div>
+              <div class="p-2.5 bg-amber-50 rounded-lg border border-amber-200">
+                <span class="text-amber-700 text-[10px] uppercase font-bold block">Remaining Quantity:</span>
+                <strong class="font-mono text-amber-950 font-bold">${o.remainingQty !== undefined ? o.remainingQty : (o.expectedQty - (o.deliveredQty || 0))} ${o.unit}</strong>
+              </div>
+            </div>
+
+            <div class="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
+              <span class="text-[11px] font-bold text-slate-700 block">Quality Standard Limits:</span>
+              <div class="text-slate-600">• Maximum Permitted Moisture: <strong>${o.maxAllowedMoisture || 12.0}%</strong></div>
+              <div class="text-slate-600">• Delivery Status: <strong class="text-blue-900">${o.orderStatus}</strong></div>
+            </div>
+
+            <div class="p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 text-[11px]">
+              <i class="fa-solid fa-circle-info mr-1 text-amber-700"></i> Godown Managers cannot edit, create, or cancel supply orders.
+            </div>
+          </div>
+
+          <div class="bg-slate-50 p-4 border-t border-slate-200 flex justify-end">
+            <button onclick="appController.closeModal()" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-lg">
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    this.openModalHTML(html);
+  }
+
+  // Open Read-Only Delivery Record Details
+  openDeliveryDetailsModal(deliveryId) {
+    const delivery = AppState.getDeliveryById(deliveryId);
+    if (!delivery) {
+      this.showToast("Delivery record not found.", "error");
+      return;
+    }
+
+    const html = `
+      <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white rounded-xl shadow-2xl max-w-xl w-full border border-slate-200 overflow-hidden my-6 animate-in fade-in zoom-in-95 duration-150">
+          
+          <div class="bg-slate-900 text-white p-5 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-lg bg-amber-500 text-slate-950 flex items-center justify-center font-bold text-lg">
+                <i class="fa-solid fa-truck-ramp-box"></i>
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <h3 class="text-base font-bold font-mono">${delivery.deliveryId}</h3>
+                  ${this.renderDeliveryStatusBadge(delivery.deliveryStatus)}
+                </div>
+                <p class="text-xs text-slate-300">Order: ${delivery.orderNumber} • ${delivery.commodity}</p>
+              </div>
+            </div>
+            <button onclick="appController.closeModal()" class="text-slate-400 hover:text-white text-lg">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+
+          <div class="p-6 space-y-4 text-xs">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
+              <div>
+                <span class="text-slate-400 text-[10px] block">Supplier:</span>
+                <strong class="text-slate-900 truncate block">${delivery.supplierName}</strong>
+              </div>
+              <div>
+                <span class="text-slate-400 text-[10px] block">Truck Number:</span>
+                <strong class="font-mono text-slate-900">${delivery.truckNumber}</strong>
+              </div>
+              <div>
+                <span class="text-slate-400 text-[10px] block">Driver:</span>
+                <strong class="text-slate-900">${delivery.driverName || '-'}</strong>
+              </div>
+              <div>
+                <span class="text-slate-400 text-[10px] block">Delivery Date:</span>
+                <strong class="text-slate-900">${UI.formatDigits(delivery.deliveryDate)}</strong>
+              </div>
+            </div>
+
+            <!-- Weighbridge & Physical Details -->
+            <div class="border border-slate-200 rounded-xl p-4 space-y-2">
+              <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wide border-b border-slate-100 pb-2">
+                Weighbridge Slip & Physical Inspection
+              </h4>
+              <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-1">
+                <div>
+                  <span class="text-slate-400 text-[11px] block">Weighbridge Slip:</span>
+                  <strong class="font-mono text-slate-900">${delivery.weighbridgeSlipNo || 'Pending'}</strong>
+                </div>
+                <div>
+                  <span class="text-slate-400 text-[11px] block">Gross Weight:</span>
+                  <strong class="font-mono text-slate-900">${delivery.grossWeightKg ? delivery.grossWeightKg.toLocaleString('en-IN') + ' kg' : '-'}</strong>
+                </div>
+                <div>
+                  <span class="text-slate-400 text-[11px] block">Tare Weight:</span>
+                  <strong class="font-mono text-slate-900">${delivery.tareWeightKg ? delivery.tareWeightKg.toLocaleString('en-IN') + ' kg' : '-'}</strong>
+                </div>
+                <div>
+                  <span class="text-slate-400 text-[11px] block">Net Weight:</span>
+                  <strong class="font-mono text-emerald-800 font-bold">${delivery.netWeightKg ? delivery.netWeightKg.toLocaleString('en-IN') + ' kg' : '-'}</strong>
+                </div>
+                <div>
+                  <span class="text-slate-400 text-[11px] block">Actual Received:</span>
+                  <strong class="font-mono text-emerald-800 font-bold">${delivery.actualQtyReceived ? delivery.actualQtyReceived + ' ' + delivery.unit : '-'}</strong>
+                </div>
+                <div>
+                  <span class="text-slate-400 text-[11px] block">Moisture Content:</span>
+                  <strong class="font-mono ${delivery.moisturePercent > (delivery.maxAllowedMoisture || 12) ? 'text-rose-700' : 'text-emerald-700'} font-bold">
+                    ${delivery.moisturePercent ? delivery.moisturePercent + '%' : '-'}
+                  </strong>
+                </div>
+              </div>
+            </div>
+
+            ${delivery.clarification ? `
+              <div class="p-3.5 bg-rose-50 border border-rose-300 rounded-xl space-y-1.5">
+                <span class="text-xs font-bold text-rose-800 uppercase flex items-center gap-1.5">
+                  <i class="fa-solid fa-triangle-exclamation"></i> Reported Clarification
+                </span>
+                <div class="text-rose-950 font-semibold">${delivery.clarification.problemType}</div>
+                <p class="text-rose-800 text-[11px]">${delivery.clarification.details}</p>
+                <div class="text-[10px] text-rose-600 font-mono pt-1">Reported: ${delivery.clarification.reportedDate} by ${delivery.clarification.reportedBy}</div>
+              </div>
+            ` : ''}
+
+            ${delivery.receiptId ? `
+              <div class="p-3 bg-indigo-50 border border-indigo-200 rounded-xl flex items-center justify-between">
+                <div>
+                  <span class="text-[10px] font-bold text-indigo-700 uppercase block">Digital Receipt Issued</span>
+                  <strong class="font-mono text-indigo-950 text-sm font-bold">${delivery.receiptId}</strong>
+                </div>
+                <button onclick="appController.openReceiptModal('${delivery.receiptId}')" 
+                  class="px-3 py-1.5 bg-indigo-700 hover:bg-indigo-800 text-white rounded text-xs font-bold flex items-center gap-1">
+                  <i class="fa-solid fa-receipt"></i> Open Receipt
+                </button>
+              </div>
+            ` : ''}
+
+            <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] text-slate-500 font-mono">
+              <div>Verified By: ${delivery.verifiedBy || 'Pending verification'}</div>
+              <div>Timestamp: ${delivery.verifiedDate || '-'}</div>
+            </div>
+          </div>
+
+          <div class="bg-slate-50 p-4 border-t border-slate-200 flex justify-end">
+            <button onclick="appController.closeModal()" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-lg">
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    this.openModalHTML(html);
+  }
+
   executePassGodown(billId) {
     AppState.passGodownVerification(billId);
     this.closeModal();
